@@ -1,0 +1,62 @@
+.heroStage {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: var(--space-xl) var(--space-gutter);
+  overflow: hidden;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+  max-width: 680px;
+  margin-bottom: 8vh;
+  animation: fade-in var(--duration-slow) var(--ease-standard) both;
+}
+
+.conversation {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-sm) var(--space-gutter) calc(var(--space-md) + env(safe-area-inset-bottom));
+}
+
+.errorActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+@media (max-width: 600px) {
+  .heroStage {
+    align-items: flex-end;
+    padding: var(--space-lg) var(--space-gutter-mobile);
+  }
+
+  .heroContent {
+    margin-bottom: var(--space-md);
+  }
+
+  .dock {
+    padding-left: var(--space-gutter-mobile);
+    padding-right: var(--space-gutter-mobile);
+  }
+}

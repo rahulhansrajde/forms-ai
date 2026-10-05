@@ -1,0 +1,74 @@
+.screen {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-xl) var(--space-gutter-mobile);
+  overflow: hidden;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-xl);
+  border: var(--border);
+  background: var(--paper);
+  animation: scale-in var(--duration-slow) var(--ease-standard) both;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.wordmark {
+  font-size: var(--text-headline-md);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.nameRow {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.nameRow > * {
+  flex: 1 1 0;
+}
+
+.switchLink {
+  display: block;
+  margin-top: var(--space-xs);
+  text-align: center;
+}
+
+.notice {
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border);
+  font-size: var(--text-body-sm);
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: var(--space-lg);
+  }
+}
+
+@media (max-width: 340px) {
+  .nameRow {
+    flex-direction: column;
+  }
+}

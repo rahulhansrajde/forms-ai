@@ -1,0 +1,106 @@
+.sidebar {
+  width: var(--sidebar-width);
+  max-width: 86vw;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  height: var(--header-height);
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  border-bottom: var(--border);
+}
+
+.newChat {
+  padding: var(--space-md);
+}
+
+.history {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--space-sm) var(--space-lg);
+}
+
+.group {
+  margin-top: var(--space-md);
+  animation: fade-in var(--duration-slow) var(--ease-standard) both;
+}
+
+.groupLabel {
+  padding: 0 var(--space-sm) var(--space-xs);
+  color: var(--ink-muted);
+  font-size: var(--text-label-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 0.55rem var(--space-sm);
+  border: 1px solid transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.item:hover,
+.item:focus-visible {
+  border-color: var(--ink);
+  text-decoration: none;
+  outline: none;
+}
+
+.item[aria-current='page'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.itemTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemTime {
+  flex-shrink: 0;
+  font-size: var(--text-label-md);
+  opacity: 0.65;
+}
+
+.empty {
+  padding: var(--space-md) var(--space-sm);
+  color: var(--ink-muted);
+  font-size: var(--text-body-sm);
+}
+
+.loadMore {
+  height: 1px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  color: var(--ink-muted);
+  font-size: var(--text-body-sm);
+}

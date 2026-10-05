@@ -1,0 +1,3164 @@
+HOW "FORMS AI" WORKS
+
+The product is an AI-powered Google Forms creation and editing application.
+
+The core flow is:
+
+User
+  ↓
+Forms AI Login / Signup
+  ↓
+New Chat
+  ↓
+User describes what they want
+  ↓
+AI understands intent
+  ↓
+┌───────────────────────────────┐
+│                               │
+│ Normal conversation           │
+│ Suggest questions             │
+│ Create form                   │
+│ Modify existing draft         │
+│ Regenerate draft              │
+│ Accept suggestions            │
+│                               │
+└───────────────────────────────┘
+  ↓
+Form Draft
+  ↓
+Preview / Editor
+  ↓
+User manually edits OR asks AI to edit
+  ↓
+New draft version
+  ↓
+User explicitly clicks "Create GForm"
+  ↓
+Google OAuth authorization
+  ↓
+Google Forms API
+  ↓
+Google Form created
+  ↓
+Show Google Form links
+
+The most important architectural rule is:
+
+Chat ≠ Google API side effect
+
+Typing something into chat must never automatically create a Google Form.
+
+Only:
+
+User clicks "Create GForm"
+
+can start the Google Forms publishing process.
+
+Another critical rule:
+
+AI → Draft
+Draft → Google Forms
+
+Never:
+
+AI → Google Forms directly
+
+The AI only produces or modifies a structured form draft.
+
+GLOBAL DEVELOPMENT RULE
+
+Give all of the following chunks to Claude Code in order.
+
+After every chunk, Claude must:
+
+inspect the current repository;
+implement the requested work;
+run tests/type checks/build;
+fix all issues;
+verify that existing functionality was not broken;
+only then continue to the next chunk.
+
+Claude must not blindly rewrite existing code.
+
+CHUNK 1 — MASTER PROJECT INSTRUCTION
+
+Paste this first.
+
+You are the lead software architect and senior full-stack engineer responsible for building a production-quality application called "Forms AI".
+
+Your task is to build the complete application from the existing repository.
+
+Before writing any code, inspect the entire repository and understand:
+
+- existing frontend structure
+- existing backend structure
+- existing login page
+- existing signup page
+- existing assets
+- existing CSS
+- existing JavaScript or TypeScript
+- existing package configuration
+- existing environment configuration
+- existing database configuration
+- existing routes
+- existing components
+- existing authentication logic
+- existing deployment configuration
+
+Do not destroy or unnecessarily rewrite working code.
+
+The existing Login and Signup pages are the primary visual reference for the application.
+
+The entire Forms AI application must feel like one unified product.
+
+The final project name is:
+
+Forms AI
+
+The logo will be provided separately by me.
+
+Use that logo wherever branding is required, including:
+
+- login
+- signup
+- application header
+- sidebar
+- favicon where appropriate
+- Google OAuth branding assets where applicable
+- loading states where appropriate
+
+Do not create a replacement logo.
+
+==================================================
+CORE TECHNOLOGY REQUIREMENTS
+==================================================
+
+Backend:
+
+- Node.js
+- TypeScript
+- object-oriented architecture
+- modular architecture
+- PostgreSQL
+
+Frontend:
+
+- preserve the existing frontend framework if one already exists
+- if the repository is incomplete and a frontend framework is required, use a modern component-based TypeScript architecture
+- do not introduce unnecessary frameworks
+- do not rewrite the project simply for preference
+
+Use TypeScript wherever practical.
+
+The backend must run on Node.js.
+
+==================================================
+USER-MANDATED CODING STYLE
+==================================================
+
+The project must follow object-oriented design.
+
+Apply:
+
+- encapsulation
+- abstraction
+- inheritance only when it provides real value
+- polymorphism when appropriate
+- composition over unnecessary inheritance
+- SOLID principles
+- dependency inversion
+- interface-driven design
+- separation of concerns
+- single responsibility
+- clean boundaries between layers
+
+Every class must have a clear responsibility.
+
+Every function and method must have one clear responsibility.
+
+Do NOT create functions that perform multiple unrelated responsibilities.
+
+Bad example:
+
+handleCreateForm():
+- validate request
+- authenticate user
+- query database
+- generate AI form
+- save database
+- create Google Form
+- send response
+
+This is forbidden.
+
+Instead separate responsibilities into dedicated services.
+
+For example:
+
+- RequestValidator
+- AuthenticationService
+- IntentDetectionService
+- FormGenerationService
+- FormDraftService
+- FormVersionService
+- GoogleOAuthService
+- GoogleFormsService
+- PublishService
+
+A function may orchestrate calls to components when orchestration itself is its responsibility, but it must not contain unrelated implementation logic.
+
+Do not duplicate the same responsibility across multiple functions.
+
+Before creating a new function, search the repository for an existing function that already performs that responsibility.
+
+Before creating a new utility, search for an existing utility.
+
+Before creating a new component, search for an existing reusable component.
+
+No duplicate logic.
+
+No copy-paste architecture.
+
+==================================================
+NO COMMENTS IN CODE
+==================================================
+
+There must be NO comments in the codebase.
+
+Do not add:
+
+- inline comments
+- block comments
+- TODO comments
+- FIXME comments
+- explanatory comments
+- commented-out code
+- autogenerated explanatory code comments
+
+Code must communicate intent through:
+
+- class names
+- method names
+- variable names
+- file names
+- types
+- interfaces
+- module boundaries
+
+Do not leave commented-out code anywhere.
+
+Documentation outside source code is allowed when genuinely useful, but source files themselves must contain no comments.
+
+==================================================
+CODE QUALITY
+==================================================
+
+The codebase must be:
+
+- clean
+- modular
+- readable
+- maintainable
+- consistent
+- strongly typed
+- testable
+- production-oriented
+- free of duplicate logic
+- free of unused files
+- free of dead code
+- free of unnecessary abstraction
+- free of giant files
+- free of giant functions
+- free of god classes
+- free of god services
+
+Use clear naming.
+
+Do not use meaningless names such as:
+
+- temp
+- data1
+- test2
+- helper2
+- manager
+- stuff
+- misc
+
+unless the name is genuinely meaningful.
+
+Keep modules cohesive.
+
+==================================================
+CONFIGURATION
+==================================================
+
+Never hardcode:
+
+- database passwords
+- Google OAuth client secrets
+- access tokens
+- refresh tokens
+- AI provider API keys
+- encryption keys
+- production credentials
+- deployment secrets
+
+Use environment variables.
+
+Create a safe .env.example containing placeholders only.
+
+Never commit .env.
+
+Never print secrets to logs.
+
+==================================================
+PRIMARY PRODUCT
+==================================================
+
+Forms AI allows a user to describe a desired Google Form in natural language.
+
+Examples:
+
+"Create a college hackathon registration form."
+
+"Create a feedback form for students."
+
+"I need a form for collecting internship information."
+
+"I have four questions already. What other questions can I add?"
+
+"Remove the phone number."
+
+"Make email mandatory."
+
+"Add a dropdown for year of study."
+
+"Regenerate the form with fewer questions."
+
+The AI must understand intent and route the request appropriately.
+
+==================================================
+CRITICAL BUSINESS RULES
+==================================================
+
+Rule 1:
+
+The structured form draft is the single source of truth for the current form.
+
+Rule 2:
+
+Conversation history is separate from form state.
+
+Rule 3:
+
+Chat text alone must not trigger Google Forms creation.
+
+Rule 4:
+
+Only explicit user confirmation through the Create GForm action may publish to Google Forms.
+
+Rule 5:
+
+AI must never directly manipulate Google Forms.
+
+Rule 6:
+
+AI changes a draft.
+
+The publish layer converts the approved draft into a Google Form.
+
+Rule 7:
+
+Every meaningful form modification creates a new form version.
+
+Rule 8:
+
+Manual editing and AI editing both update the same form draft model.
+
+Rule 9:
+
+Google becomes the external source of truth after the form is successfully created.
+
+Rule 10:
+
+Never lose the local draft simply because Google publishing fails.
+
+==================================================
+DO NOT MOVE FORWARD BLINDLY
+==================================================
+
+At the beginning of each phase:
+
+- inspect existing code
+- identify reusable code
+- identify conflicts
+- identify duplication
+- identify architectural problems
+- preserve valid existing behavior
+
+Then implement.
+
+At the end of every phase:
+
+- type check
+- lint
+- unit tests
+- integration tests where relevant
+- production build
+- verify routing
+- verify authentication behavior
+- verify database behavior
+- verify responsive UI
+
+Do not claim a phase is complete if the project does not build successfully.
+CHUNK 2 — DESIGN SYSTEM AND UI/UX
+Build the entire Forms AI interface using the existing Login and Signup pages as the visual foundation.
+
+The Login and Signup pages are the reference for:
+
+- spacing
+- visual density
+- card treatment
+- borders
+- input treatment
+- glow effects
+- animation feel
+- button behavior
+- layout proportions
+- overall minimal aesthetic
+
+However, apply these final product rules globally:
+
+==================================================
+FORMS AI VISUAL IDENTITY
+==================================================
+
+Product name:
+
+Forms AI
+
+Colors:
+
+ONLY black and white.
+
+Primary black:
+
+#000000
+
+Primary white:
+
+#FFFFFF
+
+Do not introduce:
+
+- blue
+- purple
+- green
+- red accents
+- orange
+- gradient colors
+- colorful icons
+
+Grayscale derived through opacity is acceptable where necessary for hierarchy, borders, disabled states, or shadows.
+
+The UI must remain visually monochrome.
+
+==================================================
+TYPOGRAPHY
+==================================================
+
+Use Comic Sans throughout the entire Forms AI product.
+
+Use Comic Sans for:
+
+- headings
+- body text
+- labels
+- buttons
+- navigation
+- chat messages
+- form preview
+- menus
+- settings
+- error messages
+- empty states
+- loading text
+- dialogs
+- tooltips
+
+Do not mix unrelated fonts.
+
+Do not use system fonts for part of the application.
+
+Do not use Space Grotesk or Hanken Grotesk for the final Forms AI product.
+
+The original pages may contain other fonts, but the final application must use Comic Sans consistently.
+
+==================================================
+LOGO
+==================================================
+
+I will provide the Forms AI logo.
+
+Treat the provided logo as the authoritative brand asset.
+
+Do not redesign it.
+
+Do not modify its shape.
+
+Do not add text inside the logo.
+
+Do not generate alternative versions unless required for light/dark contrast.
+
+Use it consistently.
+
+==================================================
+ANIMATION
+==================================================
+
+The application must have smooth, subtle animations.
+
+Animations must feel premium and intentional.
+
+Use:
+
+- fade
+- opacity transitions
+- translate transitions
+- scale transitions
+- sidebar slide transitions
+- modal transitions
+- panel transitions
+- input focus transitions
+- button hover transitions
+- loading transitions
+- message appearance transitions
+
+Do not use aggressive animation.
+
+Do not animate everything simultaneously.
+
+Do not make content jump.
+
+Respect reduced-motion preferences.
+
+Animations must never interfere with typing.
+
+The chat input must remain visually stable while hero text changes.
+
+==================================================
+RESPONSIVE DESIGN
+==================================================
+
+The application must work on:
+
+- desktop
+- laptop
+- tablet
+- mobile
+
+Do not simply shrink desktop UI.
+
+Adapt layouts appropriately.
+
+==================================================
+DESIGN CONSISTENCY
+==================================================
+
+Create reusable UI primitives.
+
+Examples:
+
+- Button
+- Input
+- TextArea
+- Select
+- Modal
+- Drawer
+- Tooltip
+- Card
+- Avatar
+- IconButton
+- Dropdown
+- Toast
+- EmptyState
+- LoadingState
+
+Do not implement the same UI behavior in multiple places separately.
+
+Centralize shared design behavior.
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Every interactive element must have:
+
+- keyboard accessibility
+- focus state
+- meaningful accessible label
+- proper semantic element
+- appropriate ARIA when necessary
+
+Do not sacrifice accessibility for animation.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do not redesign Login and Signup into a different visual language.
+
+Instead, extend their design language into the rest of Forms AI.
+CHUNK 3 — APPLICATION ARCHITECTURE
+Design Forms AI using a layered object-oriented architecture.
+
+Use strict separation between:
+
+Presentation layer
+Application layer
+Domain layer
+Infrastructure layer
+
+==================================================
+PRESENTATION
+==================================================
+
+Responsible for:
+
+- HTTP requests
+- route handling
+- request parsing
+- authentication context
+- response formatting
+- UI rendering
+- UI events
+
+Presentation code must not contain database logic.
+
+Presentation code must not directly call Google APIs.
+
+Presentation code must not contain AI provider logic.
+
+==================================================
+APPLICATION
+==================================================
+
+Responsible for:
+
+- use cases
+- application workflows
+- orchestration
+
+Examples:
+
+CreateConversation
+SendChatMessage
+CreateFormDraft
+ModifyFormDraft
+RegenerateForm
+AcceptSuggestions
+CreateGoogleForm
+ConnectGoogleAccount
+DisconnectGoogleAccount
+GetConversationHistory
+GetDraft
+CreateDraftVersion
+
+==================================================
+DOMAIN
+==================================================
+
+Domain contains business concepts.
+
+Examples:
+
+User
+Conversation
+Message
+FormDraft
+FormVersion
+FormQuestion
+GoogleAccountConnection
+CreatedGoogleForm
+PublishJob
+
+Domain logic must not depend directly on Express.
+
+Domain logic must not depend directly on PostgreSQL.
+
+Domain logic must not depend directly on Google APIs.
+
+==================================================
+INFRASTRUCTURE
+==================================================
+
+Infrastructure contains:
+
+- PostgreSQL repositories
+- AI provider adapters
+- Google API adapters
+- OAuth implementation
+- encryption
+- token storage
+- external services
+- logging
+- persistence
+
+==================================================
+DEPENDENCY RULE
+==================================================
+
+High-level business logic must depend on interfaces.
+
+Infrastructure implementations must implement those interfaces.
+
+Example:
+
+FormDraftRepository
+
+implemented by:
+
+PostgresFormDraftRepository
+
+GoogleFormsGateway
+
+implemented by:
+
+GoogleFormsApiGateway
+
+AIProvider
+
+implemented by:
+
+ConfiguredAIProvider
+
+==================================================
+REPOSITORY RULE
+==================================================
+
+Database queries belong in repository classes.
+
+Do not write SQL queries throughout controllers.
+
+Do not access the database directly from domain objects.
+
+==================================================
+SERVICE RULE
+==================================================
+
+Services contain one cohesive business capability.
+
+Do not create:
+
+SuperService
+MainService
+EverythingService
+UtilityService
+
+that handles unrelated business functions.
+CHUNK 4 — DATABASE
+Use PostgreSQL as the primary application database.
+
+Design the schema carefully before implementation.
+
+Every table must have:
+
+- primary key
+- appropriate indexes
+- foreign keys where appropriate
+- created_at
+- updated_at where appropriate
+
+Use migrations.
+
+Never manually modify production schema without a migration.
+
+==================================================
+USERS
+==================================================
+
+users
+
+Fields:
+
+id
+first_name
+last_name
+email
+password_hash
+created_at
+updated_at
+
+email must be unique.
+
+Passwords must never be stored in plaintext.
+
+==================================================
+CONVERSATIONS
+==================================================
+
+conversations
+
+Fields:
+
+id
+user_id
+title
+created_at
+updated_at
+
+Index:
+
+user_id
+updated_at
+
+==================================================
+MESSAGES
+==================================================
+
+messages
+
+Fields:
+
+id
+conversation_id
+role
+content
+intent
+created_at
+
+Index:
+
+conversation_id
+created_at
+
+==================================================
+FORM DRAFTS
+==================================================
+
+form_drafts
+
+Fields:
+
+id
+user_id
+conversation_id
+title
+current_version_id
+status
+created_at
+updated_at
+
+==================================================
+FORM VERSIONS
+==================================================
+
+form_versions
+
+Fields:
+
+id
+draft_id
+version_number
+schema
+source
+created_at
+
+schema should use PostgreSQL JSONB.
+
+source should represent whether the version originated from:
+
+AI
+MANUAL
+IMPORT
+REGENERATION
+SUGGESTION_ACCEPTANCE
+
+==================================================
+GOOGLE ACCOUNT CONNECTIONS
+==================================================
+
+connected_accounts
+
+Fields:
+
+id
+user_id
+provider
+provider_account_id
+access_token_encrypted
+refresh_token_encrypted
+token_expires_at
+created_at
+updated_at
+
+Never store raw tokens in plaintext.
+
+==================================================
+CREATED FORMS
+==================================================
+
+created_forms
+
+Fields:
+
+id
+draft_id
+version_id
+google_form_id
+responder_url
+edit_url
+status
+created_at
+updated_at
+
+==================================================
+PUBLISH JOBS
+==================================================
+
+publish_jobs
+
+Fields:
+
+id
+draft_id
+version_id
+status
+current_step
+error
+created_at
+updated_at
+
+==================================================
+CONSTRAINTS
+==================================================
+
+A user owns conversations.
+
+A conversation owns messages.
+
+A conversation can have form drafts.
+
+A form draft has versions.
+
+A created Google Form references the draft version from which it was published.
+
+Do not duplicate form schema across unrelated tables.
+
+The versioned form schema is the authoritative local draft representation.
+CHUNK 5 — AUTHENTICATION
+Implement application authentication separately from Google Forms OAuth.
+
+These are two different authentication concepts.
+
+==================================================
+APPLICATION AUTH
+==================================================
+
+Forms AI itself provides:
+
+Signup
+Login
+Logout
+Authenticated session
+
+Signup fields:
+
+First name
+Last name
+Email
+Password
+Re-enter password
+
+Login fields:
+
+Email
+Password
+
+On successful signup:
+
+- create user
+- hash password
+- authenticate user
+- create authenticated session
+- redirect to New Chat
+
+On successful login:
+
+- validate credentials
+- authenticate user
+- redirect to New Chat
+
+==================================================
+PASSWORD SECURITY
+==================================================
+
+Never store plaintext passwords.
+
+Use a strong password hashing mechanism.
+
+Never log passwords.
+
+Never return passwords from APIs.
+
+==================================================
+SESSION
+==================================================
+
+Use secure authenticated sessions.
+
+Authentication state must be server-validated.
+
+Protect authenticated routes.
+
+==================================================
+ERRORS
+==================================================
+
+Invalid credentials must not reveal sensitive account information.
+
+Signup must reject duplicate email addresses.
+
+Password mismatch must produce a clear validation error.
+
+Expired sessions must redirect appropriately.
+
+==================================================
+SEPARATION
+==================================================
+
+Application login answers:
+
+"Who is this user inside Forms AI?"
+
+Google OAuth answers:
+
+"Has this Forms AI user authorized access to their Google account for Google Forms?"
+CHUNK 6 — NEW CHAT PAGE
+Build the primary Forms AI New Chat experience.
+
+After login, authenticated users should normally land on New Chat.
+
+==================================================
+INITIAL STATE
+==================================================
+
+When opening a new chat:
+
+- conversation exists only when needed
+- sidebar is closed initially
+- main chat area is clean
+- no unnecessary content is shown
+- chat input is prominent
+
+==================================================
+HERO TEXT
+==================================================
+
+Show ONE phrase at a time.
+
+Do not stack multiple phrases.
+
+Examples:
+
+"What do you want to create?"
+
+"Turn your idea into a form"
+
+"Brainstorm your next idea"
+
+"What's on your mind?"
+
+"Describe what you need"
+
+"Let's build something"
+
+"Start with an idea"
+
+"Create something amazing"
+
+The phrase must change randomly.
+
+Do not use a fixed sequential loop.
+
+The same phrase must not appear twice consecutively.
+
+==================================================
+HERO ANIMATION
+==================================================
+
+Transition:
+
+fade out
+slight vertical movement
+fade in
+
+The chat input must not move during this animation.
+
+The hero text must not cause layout shift.
+
+==================================================
+CHAT INPUT
+==================================================
+
+The chat input should support:
+
+- typing
+- multiline input
+- submit
+- Enter behavior
+- Shift+Enter for newline
+- loading state
+- disabled state while request is processing where appropriate
+
+The send button must visually match the Forms AI design language.
+
+==================================================
+MESSAGES
+==================================================
+
+User messages:
+
+- visually distinct
+- clean
+- monochrome
+
+AI messages:
+
+- clean
+- readable
+- animated on appearance
+
+Do not overuse bubbles if they conflict with the existing visual design.
+
+==================================================
+EMPTY STATE
+==================================================
+
+The empty state should visually belong to the Login and Signup design.
+
+Do not introduce another visual theme.
+CHUNK 7 — CHAT HISTORY SIDEBAR
+Implement the Forms AI conversation history sidebar.
+
+==================================================
+INITIAL STATE
+==================================================
+
+Sidebar is CLOSED when starting a new chat.
+
+Show a small rounded toggle button on the left side.
+
+The toggle opens the sidebar.
+
+The sidebar slides in smoothly.
+
+==================================================
+SIDEBAR CONTENT
+==================================================
+
+Show:
+
+Forms AI logo
+New Chat
+Conversation history
+
+Group conversations into:
+
+Today
+Yesterday
+Previous 7 Days
+Older
+
+Each conversation item should show:
+
+title
+updated date/time where appropriate
+
+Do not load every message when opening the sidebar.
+
+==================================================
+LAZY LOADING
+==================================================
+
+Initial request loads only conversation metadata:
+
+id
+title
+updated_at
+
+Do not load the full messages for every conversation.
+
+When the user opens a conversation:
+
+fetch only that conversation's messages.
+
+For long conversations:
+
+load the latest 50 messages first.
+
+When the user scrolls upward:
+
+fetch older message batches.
+
+Do not transfer unnecessary data.
+
+Do not load all historical messages into browser memory.
+
+==================================================
+NEW CHAT
+==================================================
+
+Clicking New Chat must create/open a fresh conversation.
+
+It must not delete old conversations.
+
+==================================================
+SIDEBAR CLOSE
+==================================================
+
+Closing the sidebar:
+
+- does not delete anything
+- does not change conversation state
+- preserves current chat
+- preserves draft
+
+==================================================
+ANIMATION
+==================================================
+
+Sidebar:
+
+- smooth slide-in
+- smooth slide-out
+- no visual jump
+- no content duplication
+CHUNK 8 — AI INTENT ENGINE
+Implement an AI intent-routing system.
+
+The system must classify user messages into controlled application intents.
+
+Minimum intents:
+
+NORMAL_CHAT
+CREATE_FORM
+SUGGEST_QUESTIONS
+ACCEPT_SUGGESTIONS
+MODIFY_FORM
+REGENERATE_FORM
+CREATE_GOOGLE_FORM
+CLARIFICATION_REQUIRED
+
+Do not let raw AI output directly execute application behavior.
+
+AI output must first pass through validation and normalization.
+
+==================================================
+NORMAL CHAT
+==================================================
+
+Example:
+
+"Explain what Google Forms can do."
+
+Result:
+
+normal conversational response.
+
+No form draft change.
+
+==================================================
+CREATE FORM
+==================================================
+
+Example:
+
+"Create a college hackathon registration form."
+
+Result:
+
+Generate a structured draft.
+
+Do not create Google Form.
+
+==================================================
+SUGGEST QUESTIONS
+==================================================
+
+Example:
+
+"I already have four questions. What else can I ask?"
+
+Result:
+
+Return suggested questions.
+
+Do not modify the draft yet.
+
+==================================================
+ACCEPT SUGGESTIONS
+==================================================
+
+Example:
+
+"Okay, add those questions."
+
+Result:
+
+Accepted suggestions are converted into form draft changes.
+
+==================================================
+MODIFY FORM
+==================================================
+
+Examples:
+
+"Remove phone number."
+
+"Make email required."
+
+"Add year of study."
+
+"Change the title."
+
+Apply operation to the current draft.
+
+==================================================
+REGENERATE
+==================================================
+
+Examples:
+
+"Regenerate it."
+
+"Make a simpler version."
+
+"Create a better version with fewer questions."
+
+Generate a new candidate version while preserving the previous version.
+
+==================================================
+AMBIGUITY
+==================================================
+
+"Okay"
+
+must not automatically mean acceptance.
+
+Ask a clarification question when intent is ambiguous.
+
+==================================================
+IMPORTANT
+==================================================
+
+Only explicitly supported intents may cause state changes.
+
+Unknown AI output must fail safely.
+
+CHUNK 9 — FORM SCHEMA AND VERSIONING
+Implement a strongly typed internal Form Schema.
+
+This schema is the single source of truth for the current editable form.
+
+Example structure:
+
+{
+  "title": "College Hackathon Registration",
+  "description": "Register for the college hackathon",
+  "sections": [
+    {
+      "id": "section_1",
+      "title": "Participant Information",
+      "description": "",
+      "questions": [
+        {
+          "id": "question_1",
+          "type": "SHORT_ANSWER",
+          "title": "Full Name",
+          "description": "",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
+
+Support appropriate question types such as:
+
+SHORT_ANSWER
+PARAGRAPH
+EMAIL
+MULTIPLE_CHOICE
+CHECKBOXES
+DROPDOWN
+LINEAR_SCALE
+DATE
+TIME
+
+Use identifiers for every question and section.
+
+==================================================
+VERSIONING
+==================================================
+
+Every meaningful modification creates a new version.
+
+Example:
+
+Version 1
+Initial generated form
+
+Version 2
+Phone number added
+
+Version 3
+Phone number removed
+
+Version 4
+Email made required
+
+Never overwrite history.
+
+The current version is explicitly tracked.
+
+==================================================
+SOURCE
+==================================================
+
+Each version records its source.
+
+Examples:
+
+AI
+MANUAL
+REGENERATION
+SUGGESTION_ACCEPTANCE
+
+==================================================
+OPERATIONS
+==================================================
+
+AI edits should be represented through explicit operations where practical.
+
+Examples:
+
+ADD_QUESTION
+REMOVE_QUESTION
+UPDATE_QUESTION
+REORDER_QUESTION
+UPDATE_TITLE
+UPDATE_DESCRIPTION
+ADD_SECTION
+REMOVE_SECTION
+
+This allows consistent editing from:
+
+AI
+manual UI
+future integrations
+
+Do not implement separate incompatible mutation systems.
+CHUNK 10 — ARTIFACT PREVIEW / EDITOR
+Build the right-side Form Draft artifact panel.
+
+The artifact is not a static preview.
+
+It is the editable representation of the current form draft.
+
+==================================================
+VISIBILITY
+==================================================
+
+The artifact panel is NOT visible by default.
+
+It appears when:
+
+- a draft exists
+- user clicks Show Preview
+
+==================================================
+CLOSE
+==================================================
+
+User can close the panel.
+
+Closing does not delete the draft.
+
+The user can continue chatting.
+
+==================================================
+REOPEN
+==================================================
+
+Clicking Show Preview again opens the latest draft version.
+
+==================================================
+EDITING
+==================================================
+
+The artifact must allow manual edits.
+
+Users should be able to modify:
+
+- title
+- description
+- question title
+- question type
+- required state
+- options
+- ordering
+- sections
+
+Every meaningful manual edit must create a new version.
+
+==================================================
+AI UPDATES
+==================================================
+
+If the preview is open and AI modifies the form:
+
+the artifact updates immediately.
+
+If preview is closed and AI modifies the form:
+
+the draft updates silently.
+
+The AI may inform the user:
+
+"Your draft has been updated. Show Preview to review it."
+
+==================================================
+NO REGENERATE BUTTON
+==================================================
+
+Do NOT create a Regenerate button inside the artifact panel.
+
+Regeneration is performed through chat.
+
+==================================================
+CREATE GOOGLE FORM
+==================================================
+
+The artifact panel contains the major action:
+
+Create GForm
+
+This action is the explicit publishing trigger.
+
+It must clearly communicate that it will create an actual Google Form.
+
+Do not create the Google Form just because the preview was opened.
+
+Do not create the Google Form just because a draft exists.
+CHUNK 11 — SUGGESTION SYSTEM
+Implement the question suggestion workflow.
+
+This workflow must remain separate from direct form modification.
+
+==================================================
+SUGGESTION REQUEST
+==================================================
+
+Example:
+
+"I need a GForm for a college hackathon. I have these four questions. What else can I ask?"
+
+Intent:
+
+SUGGEST_QUESTIONS
+
+The AI returns suggestions in chat.
+
+The form draft does not automatically change.
+
+==================================================
+ACCEPTANCE
+==================================================
+
+Example:
+
+"Okay, add those."
+
+Intent:
+
+ACCEPT_SUGGESTIONS
+
+Only then should accepted suggestions be inserted into the draft.
+
+==================================================
+PARTIAL ACCEPTANCE
+==================================================
+
+Example:
+
+"Use college name, phone, skills but skip team size."
+
+Only the accepted suggestions are added.
+
+==================================================
+REVISION
+==================================================
+
+Example:
+
+"I don't think these are useful. Give me different ones."
+
+Generate a new suggestion set.
+
+Do not modify the form.
+
+==================================================
+CONTINUE SUGGESTIONS
+==================================================
+
+Example:
+
+"What else?"
+
+Generate additional relevant suggestions.
+
+Do not automatically add them.
+
+==================================================
+AMBIGUOUS ACCEPTANCE
+==================================================
+
+"Okay"
+
+is insufficient if it is unclear what is being accepted.
+
+Ask a concise clarification.
+
+==================================================
+UI
+==================================================
+
+Suggestions are normal AI chat content.
+
+Do not turn every suggestion into a selectable interactive chip.
+
+The acceptance should happen through natural language.
+CHUNK 12 — GOOGLE OAUTH
+Implement Google OAuth separately from Forms AI application authentication.
+
+The current Google Cloud configuration uses a Web Application OAuth client.
+
+Local development:
+
+Authorized JavaScript origin:
+
+http://localhost:3000
+
+Authorized redirect URI:
+
+http://localhost:5000/auth/google/callback
+
+The Google Cloud project already has:
+
+Google Forms API enabled
+
+The configured Data Access scopes are:
+
+openid
+https://www.googleapis.com/auth/userinfo.email
+https://www.googleapis.com/auth/userinfo.profile
+https://www.googleapis.com/auth/forms.body
+
+Do not add unnecessary Google Drive scopes.
+
+==================================================
+OAUTH FLOW
+==================================================
+
+User logs into Forms AI.
+
+User opens:
+
+Plugins / Google Forms
+
+User clicks:
+
+Connect
+
+Backend starts Google OAuth authorization.
+
+User selects Google account.
+
+Google shows consent.
+
+User authorizes.
+
+Google redirects to:
+
+/auth/google/callback
+
+Backend validates OAuth response.
+
+Backend exchanges authorization code for tokens.
+
+Backend obtains Google account identity.
+
+Backend associates the Google account with the authenticated Forms AI user.
+
+Backend stores token data securely.
+
+Frontend shows:
+
+Google Forms
+Connected
+
+==================================================
+TOKEN SECURITY
+==================================================
+
+Never expose refresh tokens to frontend.
+
+Never put access tokens into browser local storage.
+
+Never log tokens.
+
+Encrypt sensitive token values at rest.
+
+Store expiry information.
+
+Refresh access tokens when required.
+
+Handle expired tokens safely.
+
+==================================================
+MULTI USER
+==================================================
+
+One Google OAuth application serves many Forms AI users.
+
+Each Forms AI user authorizes their own Google account.
+
+Never mix tokens between users.
+
+Every Google token must be associated with the authenticated Forms AI user.
+
+==================================================
+DISCONNECT
+==================================================
+
+Implement disconnect functionality.
+
+When user disconnects Google Forms:
+
+remove or invalidate stored connection information as appropriate.
+
+The Forms AI account itself must remain intact.
+CHUNK 13 — GOOGLE FORM CREATION
+Implement the explicit Google Form publishing workflow.
+
+Google Form creation must be treated as a controlled backend operation.
+
+==================================================
+TRIGGER
+==================================================
+
+Only the user clicking:
+
+Create GForm
+
+may initiate publication.
+
+Chat classification alone cannot publish.
+
+==================================================
+PRECONDITIONS
+==================================================
+
+Before publication:
+
+- user must be authenticated
+- current draft must exist
+- current draft must be valid
+- user must have Google Forms connected
+- current draft must contain a supported schema
+- all validation must pass
+
+If Google is not connected:
+
+show:
+
+Connect Google Forms
+
+Do not partially publish.
+
+==================================================
+PUBLISH WORKFLOW
+==================================================
+
+Step 1
+
+Load current draft version.
+
+Step 2
+
+Validate form schema.
+
+Step 3
+
+Load authenticated user's Google connection.
+
+Step 4
+
+Ensure valid Google access credentials.
+
+Step 5
+
+Create the Google Form.
+
+Step 6
+
+Add supported form items.
+
+Step 7
+
+Apply required settings and question properties.
+
+Step 8
+
+Retrieve Google Form identifiers and URLs.
+
+Step 9
+
+Persist created form metadata.
+
+Step 10
+
+Mark publish operation successful.
+
+==================================================
+FAILURE HANDLING
+==================================================
+
+If any step fails:
+
+- do not destroy local draft
+- preserve current form version
+- record publish failure
+- store current publish step
+- show understandable error
+- allow retry
+
+Never create a duplicate form unnecessarily because of a transient failure.
+
+Design publication to be as idempotent as practical.
+
+==================================================
+RESULT
+==================================================
+
+After successful creation show:
+
+Google Form created successfully
+
+Include:
+
+Open Form
+Open Editor
+
+Store:
+
+google_form_id
+responder_url
+edit_url
+draft_id
+version_id
+status
+CHUNK 14 — CONVERSATION + FORM STATE
+Implement clear separation between chat state and form state.
+
+A conversation contains:
+
+messages
+
+A form draft contains:
+
+current form state
+version history
+
+A conversation may have zero or more form drafts depending on the product model.
+
+Do not store the full mutable form schema inside every chat message.
+
+A message should store:
+
+id
+conversation_id
+role
+content
+intent
+created_at
+
+The form draft stores its structured schema through form versions.
+
+==================================================
+CHAT FLOW
+==================================================
+
+User message
+
+↓
+
+Store message
+
+↓
+
+Detect intent
+
+↓
+
+Execute appropriate use case
+
+↓
+
+Store AI response
+
+↓
+
+Return response
+
+==================================================
+FORM FLOW
+==================================================
+
+User request
+
+↓
+
+Intent
+
+↓
+
+Form generation or operation
+
+↓
+
+Validate
+
+↓
+
+Create version
+
+↓
+
+Set current version
+
+↓
+
+Refresh artifact
+
+==================================================
+IMPORTANT
+==================================================
+
+Chat history must remain understandable even if the draft changes later.
+
+Version history must remain immutable.
+
+CHUNK 15 — SETTINGS / USER AREA
+Build a clean Forms AI settings area.
+
+Sections:
+
+Profile
+Security
+Google Forms Connection
+Application preferences
+
+==================================================
+PROFILE
+==================================================
+
+Display:
+
+First name
+Last name
+Email
+
+Allow appropriate profile updates.
+
+==================================================
+GOOGLE FORMS
+==================================================
+
+Show:
+
+Google Forms
+
+Status:
+
+Connected
+or
+Not connected
+
+If connected:
+
+show Google account information where appropriate.
+
+Provide:
+
+Disconnect
+
+If disconnected:
+
+provide:
+
+Connect Google Forms
+
+==================================================
+SECURITY
+==================================================
+
+Provide logout.
+
+Use secure authentication behavior.
+
+Do not expose sensitive credentials.
+
+==================================================
+UI
+==================================================
+
+Settings must use the same Forms AI visual language.
+
+Black and white.
+
+Comic Sans.
+
+Smooth animation.
+
+No separate design system.
+CHUNK 16 — API DESIGN
+Create a clean API architecture.
+
+Do not create random endpoints without checking existing functionality.
+
+Group endpoints logically.
+
+==================================================
+AUTH
+==================================================
+
+POST /auth/signup
+POST /auth/login
+POST /auth/logout
+GET /auth/me
+
+==================================================
+CONVERSATIONS
+==================================================
+
+POST /conversations
+GET /conversations
+GET /conversations/:conversationId/messages
+POST /conversations/:conversationId/messages
+
+Support pagination.
+
+==================================================
+DRAFTS
+==================================================
+
+GET /drafts/:draftId
+GET /drafts/:draftId/versions
+POST /drafts/:draftId/versions
+
+==================================================
+GOOGLE
+==================================================
+
+GET /auth/google
+GET /auth/google/callback
+
+GET /integrations/google/status
+DELETE /integrations/google
+
+POST /google-forms/publish
+
+==================================================
+RULE
+==================================================
+
+Controllers should remain thin.
+
+Controllers should:
+
+- receive request
+- pass validated data into a use case
+- return the use-case result
+
+Controllers must not contain database queries.
+
+Controllers must not contain AI provider code.
+
+Controllers must not contain Google API code.
+CHUNK 17 — ERROR HANDLING
+Implement centralized error handling.
+
+Create meaningful typed error classes.
+
+Examples:
+
+ValidationError
+AuthenticationError
+AuthorizationError
+NotFoundError
+ConflictError
+ExternalServiceError
+GoogleOAuthError
+GoogleFormsError
+AIProviderError
+DatabaseError
+PublishError
+
+Do not throw arbitrary strings.
+
+Do not expose internal stack traces to users.
+
+Do not leak:
+
+- SQL
+- credentials
+- tokens
+- file system paths
+- internal architecture
+- provider secrets
+
+Errors returned to the frontend should be safe and understandable.
+
+Internal logs may contain diagnostic metadata but never secrets.
+
+Every external integration must have controlled failure behavior.
+
+The UI must show graceful errors.
+
+Do not let one failed request crash the application.
+CHUNK 18 — SECURITY
+Implement security throughout Forms AI.
+
+==================================================
+AUTH SECURITY
+==================================================
+
+Hash passwords securely.
+
+Protect authenticated routes.
+
+Use secure session handling.
+
+Prevent unauthorized conversation access.
+
+Prevent unauthorized draft access.
+
+Prevent unauthorized Google connection access.
+
+==================================================
+DATABASE SECURITY
+==================================================
+
+Never build SQL using raw user string concatenation.
+
+Use parameterized queries or the selected database abstraction.
+
+Validate IDs.
+
+Enforce ownership at the database/repository/application boundary.
+
+A user must never be able to access another user's:
+
+- conversations
+- messages
+- drafts
+- versions
+- Google tokens
+- created forms
+
+==================================================
+AI SECURITY
+==================================================
+
+Treat AI output as untrusted input.
+
+Validate structured AI output.
+
+Do not execute arbitrary AI-generated instructions.
+
+Never allow model output to directly invoke arbitrary backend functions.
+
+Only approved intents and operations may execute.
+
+==================================================
+GOOGLE SECURITY
+==================================================
+
+Tokens remain backend-only.
+
+Never expose refresh tokens.
+
+Never log OAuth credentials.
+
+Never commit credentials.
+
+==================================================
+INPUT SECURITY
+==================================================
+
+Validate:
+
+- request body
+- query parameters
+- route parameters
+- form question types
+- form option values
+- titles
+- descriptions
+- generated schemas
+
+Prevent injection vulnerabilities.
+
+Protect against malformed AI responses.
+
+CHUNK 19 — TESTING
+Testing is mandatory.
+
+Do not consider the project complete because the application visually works.
+
+==================================================
+UNIT TESTS
+==================================================
+
+Test:
+
+- authentication logic
+- password validation
+- intent classification normalization
+- form schema validation
+- form operations
+- version creation
+- suggestion acceptance
+- ambiguity handling
+- ownership checks
+- token expiration handling
+
+==================================================
+INTEGRATION TESTS
+==================================================
+
+Test:
+
+- signup
+- login
+- logout
+- conversation creation
+- message persistence
+- draft creation
+- draft versioning
+- Google OAuth callback logic
+- Google account connection
+- Google Forms publishing flow
+
+Use mocks for external services where appropriate.
+
+==================================================
+E2E TESTS
+==================================================
+
+Test real user journeys:
+
+Journey 1:
+
+Signup
+→ Login
+→ New Chat
+
+Journey 2:
+
+Create form
+→ Draft generated
+→ Show Preview
+
+Journey 3:
+
+Modify form
+→ New version
+→ Preview updates
+
+Journey 4:
+
+Ask for suggestions
+→ Suggestions shown
+→ No draft modification
+
+Journey 5:
+
+Accept suggestions
+→ Draft changes
+
+Journey 6:
+
+Create GForm
+→ OAuth
+→ Google authorization
+→ Form creation
+→ result shown
+
+Journey 7:
+
+Google publishing failure
+→ draft remains intact
+→ retry possible
+
+==================================================
+QUALITY GATE
+==================================================
+
+Before completion:
+
+all tests must pass
+
+build must pass
+
+type checking must pass
+
+lint must pass
+
+no unused code
+
+no duplicate logic
+
+no comments in source files
+
+no secrets in repository
+
+CHUNK 20 — PERFORMANCE
+Optimize Forms AI for efficient operation.
+
+==================================================
+CHAT HISTORY
+==================================================
+
+Do not load all conversations' messages.
+
+Load conversation metadata first.
+
+Load messages only when a conversation is opened.
+
+Load latest 50 messages initially.
+
+Fetch older messages on upward scroll.
+
+==================================================
+DATABASE
+==================================================
+
+Use indexes for:
+
+user_id
+conversation_id
+updated_at
+created_at
+
+Use pagination.
+
+Do not perform unbounded queries.
+
+==================================================
+FRONTEND
+==================================================
+
+Avoid unnecessary rerenders.
+
+Avoid duplicate network requests.
+
+Do not repeatedly fetch the same data when it can be reused safely.
+
+Keep animations smooth.
+
+Do not block typing while the preview updates.
+
+==================================================
+AI
+==================================================
+
+Do not send unnecessary conversation history to the model.
+
+Use only the context required to understand the current request.
+
+Keep form schema structured.
+
+Do not repeatedly regenerate the complete form when a small operation is enough.
+
+==================================================
+GOOGLE
+==================================================
+
+Do not repeatedly authenticate the same user unnecessarily.
+
+Reuse valid tokens.
+
+Refresh only when required.
+
+CHUNK 21 — PROJECT STRUCTURE
+
+Give Claude this architecture target, while allowing it to adapt to the repository where necessary:
+
+forms-ai/
+│
+├── frontend/
+│   ├── components/
+│   ├── pages/
+│   ├── layouts/
+│   ├── hooks/
+│   ├── services/
+│   ├── state/
+│   ├── types/
+│   ├── utils/
+│   └── styles/
+│
+├── backend/
+│   └── src/
+│       ├── domain/
+│       │   ├── entities/
+│       │   ├── value-objects/
+│       │   ├── interfaces/
+│       │   └── services/
+│       │
+│       ├── application/
+│       │   ├── use-cases/
+│       │   ├── dto/
+│       │   └── services/
+│       │
+│       ├── infrastructure/
+│       │   ├── database/
+│       │   │   ├── repositories/
+│       │   │   ├── migrations/
+│       │   │   └── connection/
+│       │   ├── google/
+│       │   ├── ai/
+│       │   ├── security/
+│       │   └── configuration/
+│       │
+│       ├── presentation/
+│       │   ├── controllers/
+│       │   ├── routes/
+│       │   ├── middleware/
+│       │   └── validators/
+│       │
+│       └── shared/
+│           ├── errors/
+│           ├── types/
+│           └── utilities/
+│
+├── tests/
+├── .env.example
+├── package.json
+└── README.md
+
+Important instruction:
+
+Do not blindly force this directory structure if the repository already has a good equivalent.
+
+Preserve good existing architecture.
+
+Refactor only where needed.
+
+Do not create duplicate folders representing the same responsibility.
+CHUNK 22 — OOP ENFORCEMENT
+
+This one is especially important for your requirement.
+
+Enforce object-oriented design throughout the backend.
+
+==================================================
+EXAMPLE DOMAIN CLASSES
+==================================================
+
+User
+Conversation
+Message
+FormDraft
+FormVersion
+FormQuestion
+GoogleAccount
+CreatedGoogleForm
+PublishJob
+
+==================================================
+EXAMPLE SERVICES
+==================================================
+
+AuthenticationService
+ConversationService
+MessageService
+IntentDetectionService
+SuggestionService
+FormGenerationService
+FormModificationService
+FormVersionService
+GoogleOAuthService
+GoogleFormsService
+PublishService
+
+==================================================
+EXAMPLE REPOSITORIES
+==================================================
+
+UserRepository
+ConversationRepository
+MessageRepository
+FormDraftRepository
+FormVersionRepository
+ConnectedAccountRepository
+CreatedFormRepository
+PublishJobRepository
+
+==================================================
+INTERFACES
+==================================================
+
+AIProvider
+UserRepository
+ConversationRepository
+MessageRepository
+FormDraftRepository
+GoogleFormsGateway
+OAuthGateway
+TokenEncryptionService
+
+==================================================
+SINGLE RESPONSIBILITY RULE
+==================================================
+
+Each class has one main reason to change.
+
+Each method has one cohesive responsibility.
+
+Do not combine:
+
+validation + persistence
+
+authentication + Google OAuth
+
+AI generation + database persistence
+
+Google API calls + HTTP response formatting
+
+UI rendering + API implementation
+
+==================================================
+NO DUPLICATE TASKS
+==================================================
+
+Exactly one abstraction should own each business responsibility.
+
+For example:
+
+Only one service owns password authentication.
+
+Only one service owns form generation.
+
+Only one service owns Google publishing.
+
+Only one repository owns form draft persistence.
+
+Only one service owns token encryption.
+
+Do not implement the same behavior again elsewhere.
+
+==================================================
+METHOD SIZE
+==================================================
+
+Avoid extremely long methods.
+
+When a method becomes too large:
+
+identify the distinct responsibility
+extract a properly named abstraction
+keep ownership clear
+CHUNK 23 — UI PAGES
+Forms AI must contain these major pages/screens.
+
+==================================================
+PUBLIC
+==================================================
+
+Login
+Signup
+
+==================================================
+AUTHENTICATED
+==================================================
+
+New Chat
+Conversation
+Preview / Editor
+Settings
+Profile
+Google Forms Connection
+
+==================================================
+OPTIONAL SYSTEM STATES
+==================================================
+
+404
+Unauthorized
+Server Error
+Loading
+Empty State
+
+==================================================
+LOGIN
+==================================================
+
+Preserve the visual character of the existing login page.
+
+Do not redesign unnecessarily.
+
+Use the Forms AI logo.
+
+Use Comic Sans.
+
+Use black and white.
+
+Use smooth animation.
+
+==================================================
+SIGNUP
+==================================================
+
+Preserve the visual character of the existing signup page.
+
+Use:
+
+First Name
+Last Name
+Email
+Password
+Confirm Password
+
+Use Forms AI branding.
+
+==================================================
+CHAT
+==================================================
+
+Primary workspace.
+
+==================================================
+ARTIFACT
+==================================================
+
+Right-side editable form panel.
+
+==================================================
+SETTINGS
+==================================================
+
+Account and Google connection management.
+CHUNK 24 — FINAL PROJECT BEHAVIOR
+Implement these exact scenarios.
+
+==================================================
+SCENARIO 1
+==================================================
+
+User:
+
+"What is Google Forms?"
+
+Result:
+
+Normal AI response.
+
+No draft.
+
+==================================================
+SCENARIO 2
+==================================================
+
+User:
+
+"Create a college hackathon registration form."
+
+Result:
+
+CREATE_FORM
+
+Generate draft.
+
+Show option to preview.
+
+Do NOT create Google Form.
+
+==================================================
+SCENARIO 3
+==================================================
+
+User:
+
+"Remove phone number."
+
+Result:
+
+MODIFY_FORM
+
+Create new form version.
+
+Update artifact.
+
+==================================================
+SCENARIO 4
+==================================================
+
+User:
+
+"What else can I ask?"
+
+Result:
+
+SUGGEST_QUESTIONS
+
+Show suggestions in chat.
+
+Do not change draft.
+
+==================================================
+SCENARIO 5
+==================================================
+
+User:
+
+"Add those questions."
+
+Result:
+
+ACCEPT_SUGGESTIONS
+
+Add accepted suggestions.
+
+Create new form version.
+
+Update artifact.
+
+==================================================
+SCENARIO 6
+==================================================
+
+User:
+
+"Regenerate this with fewer questions."
+
+Result:
+
+REGENERATE_FORM
+
+Create a new candidate version.
+
+Do not destroy previous version.
+
+==================================================
+SCENARIO 7
+==================================================
+
+User:
+
+"Create it in Google Forms."
+
+If this is plain chat text:
+
+Do not automatically publish.
+
+Instead present or require explicit Create GForm action.
+
+==================================================
+SCENARIO 8
+==================================================
+
+User clicks:
+
+Create GForm
+
+Now publication may begin.
+
+==================================================
+SCENARIO 9
+==================================================
+
+Google Forms is not connected.
+
+Result:
+
+Prompt user to connect Google Forms.
+
+Do not publish.
+
+==================================================
+SCENARIO 10
+==================================================
+
+Google publishing fails.
+
+Result:
+
+Local draft remains intact.
+
+Publish job records failure.
+
+User can retry.
+
+==================================================
+SCENARIO 11
+==================================================
+
+User closes preview.
+
+Result:
+
+Draft remains.
+
+Chat remains usable.
+
+==================================================
+SCENARIO 12
+==================================================
+
+User opens previous conversation.
+
+Result:
+
+Only selected conversation messages are loaded.
+
+==================================================
+SCENARIO 13
+==================================================
+
+User scrolls to top of long conversation.
+
+Result:
+
+Older messages are fetched incrementally.
+CHUNK 25 — FINAL AUDIT PROMPT
+
+This is the last prompt you give Claude after all implementation is complete.
+
+Perform a complete senior-engineer audit of the Forms AI repository.
+
+Do not assume the implementation is correct.
+
+Inspect every major module.
+
+==================================================
+ARCHITECTURE AUDIT
+==================================================
+
+Verify:
+
+- OOP architecture
+- SOLID principles
+- dependency boundaries
+- repository separation
+- application/domain/infrastructure separation
+- no circular responsibilities
+- no god classes
+- no god functions
+- no duplicate services
+- no duplicate utilities
+- no duplicate API behavior
+
+==================================================
+FUNCTION AUDIT
+==================================================
+
+For every major function and method:
+
+- identify its single responsibility
+- verify it does not perform unrelated tasks
+- verify validation is not mixed with persistence unnecessarily
+- verify external integration is not mixed with UI formatting
+- verify business rules have one clear owner
+
+Refactor violations.
+
+==================================================
+DUPLICATION AUDIT
+==================================================
+
+Search for:
+
+- duplicated code
+- duplicate validation
+- duplicate API requests
+- duplicate UI components
+- duplicate constants
+- duplicate database logic
+- duplicate error handling
+- duplicate authentication behavior
+
+Remove duplication.
+
+==================================================
+CODE CLEANLINESS
+==================================================
+
+Search the entire repository for:
+
+- comments
+- TODO
+- FIXME
+- commented-out code
+- dead code
+- unused imports
+- unused variables
+- temporary files
+- debugging statements
+- console logging that should not remain
+- hardcoded credentials
+- hardcoded secrets
+- duplicate configuration
+
+Remove all source-code comments.
+
+==================================================
+SECURITY AUDIT
+==================================================
+
+Verify:
+
+- password hashing
+- authentication
+- authorization
+- ownership checks
+- OAuth token security
+- token encryption
+- secret handling
+- input validation
+- injection prevention
+- AI output validation
+
+==================================================
+DATABASE AUDIT
+==================================================
+
+Verify:
+
+- migrations
+- indexes
+- foreign keys
+- ownership
+- pagination
+- JSONB schema
+- versioning
+- transaction boundaries
+- query parameterization
+
+==================================================
+GOOGLE OAUTH AUDIT
+==================================================
+
+Verify:
+
+- correct OAuth client
+- redirect URI
+- callback handling
+- state protection
+- user association
+- token storage
+- refresh behavior
+- disconnect
+- failure handling
+
+==================================================
+GOOGLE FORMS AUDIT
+==================================================
+
+Verify:
+
+- publish only through explicit action
+- draft validation
+- supported question types
+- correct form creation flow
+- created form metadata persistence
+- retry behavior
+- duplicate prevention
+
+==================================================
+UI AUDIT
+==================================================
+
+Verify the entire product uses:
+
+- Forms AI branding
+- provided logo
+- Comic Sans
+- black and white
+- consistent spacing
+- consistent buttons
+- consistent inputs
+- smooth animation
+- responsive layouts
+- accessibility
+
+Compare every authenticated page against the existing Login and Signup visual language.
+
+There must not be separate visual identities inside the app.
+
+==================================================
+PERFORMANCE AUDIT
+==================================================
+
+Verify:
+
+- lazy conversation loading
+- message pagination
+- minimal API requests
+- no unnecessary rerenders
+- efficient database queries
+- no duplicate requests
+- smooth animation
+- stable chat input
+
+==================================================
+TESTING AUDIT
+==================================================
+
+Run:
+
+- type checking
+- lint
+- unit tests
+- integration tests
+- end-to-end tests
+- production build
+
+Fix every failure.
+
+==================================================
+FINAL CONDITION
+==================================================
+
+Do not report completion until:
+
+- application builds
+- tests pass
+- no critical errors remain
+- no source-code comments remain
+- no secrets are present
+- no duplicate responsibilities remain
+- all core workflows function
+- authentication works
+- chat works
+- form generation works
+- form modification works
+- suggestions work
+- preview works
+- versioning works
+- Google OAuth works
+- Google Form publishing works
+- failure recovery works
+- responsive UI works
+
+Return a final concise report containing:
+
+1. implemented modules
+2. database tables
+3. API routes
+4. Google OAuth flow
+5. major UI screens
+6. test results
+7. build result
+8. remaining issues, if any
+
+Do not claim anything was implemented if it was not verified.
+VERY IMPORTANT INSTRUCTION TO PUT AT THE TOP OF EVERY CHUNK
+
+I recommend adding this small line before every phase when using Claude Code:
+
+Do not start coding immediately. First inspect the existing repository and determine what is already implemented. Reuse working code, avoid duplication, preserve existing functionality, and only then implement this phase.
+THE IDEAL IMPLEMENTATION ORDER
+
+Give Claude the chunks in this order:
+
+1. Master project instruction
+2. Design system
+3. Architecture
+4. Database
+5. Authentication
+6. New Chat
+7. Chat History
+8. AI Intent Engine
+9. Form Schema + Versioning
+10. Artifact Preview / Editor
+11. Suggestions
+12. Google OAuth
+13. Google Form Creation
+14. Conversation/Form state
+15. Settings
+16. API
+17. Error handling
+18. Security
+19. Testing
+20. Performance
+21. Project structure
+22. OOP enforcement
+23. UI pages
+24. Final behavior scenarios
+25. Final audit
+One architectural principle I especially want Claude to follow
+
+The core of Forms AI should look like this:
+
+                    ┌──────────────┐
+                    │    User      │
+                    └──────┬───────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │     Chat     │
+                    └──────┬───────┘
+                           │
+                           ▼
+                 ┌──────────────────┐
+                 │ Intent Detection │
+                 └────────┬─────────┘
+                          │
+           ┌──────────────┼──────────────┐
+           ▼              ▼              ▼
+      Normal Chat    Suggestions    Form Operations
+                                      │
+                                      ▼
+                              ┌───────────────┐
+                              │  Form Draft   │
+                              └───────┬───────┘
+                                      │
+                                      ▼
+                              ┌───────────────┐
+                              │ Form Versions │
+                              └───────┬───────┘
+                                      │
+                                      ▼
+                              ┌───────────────┐
+                              │Preview / Edit │
+                              └───────┬───────┘
+                                      │
+                              Explicit action
+                                      │
+                                      ▼
+                              ┌───────────────┐
+                              │  Google OAuth │
+                              └───────┬───────┘
+                                      │
+                                      ▼
+                              ┌───────────────┐
+                              │ Google Forms  │
+                              │     API       │
+                              └───────────────┘
+
+
+                              not to delete or replace your existing Login/Signup implementation until it has inspected it and extracted the reusable design tokens/components.

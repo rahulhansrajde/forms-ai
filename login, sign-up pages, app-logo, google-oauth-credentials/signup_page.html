@@ -1,0 +1,275 @@
+<!DOCTYPE html><html class="stitch-anim-fade-in" lang="en" style="background-color: rgb(255, 255, 255);"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Login</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "outline": "#919095",
+            "on-surface": "#e3e2e7",
+            "tertiary-fixed-dim": "#cec4c2",
+            "surface-dim": "#121317",
+            "tertiary-container": "#151110",
+            "secondary-fixed": "#e2e2e2",
+            "on-tertiary-container": "#837c7a",
+            "tertiary": "#cec4c2",
+            "on-tertiary-fixed": "#1f1b19",
+            "on-secondary-container": "#b4b5b5",
+            "primary-fixed-dim": "#c8c6c8",
+            "on-secondary": "#2f3131",
+            "inverse-surface": "#e3e2e7",
+            "on-primary-fixed-variant": "#474649",
+            "on-primary-fixed": "#1b1b1d",
+            "surface-variant": "#343539",
+            "on-secondary-fixed-variant": "#454747",
+            "on-tertiary-fixed-variant": "#4b4544",
+            "surface-container-highest": "#343539",
+            "primary-container": "#121214",
+            "on-primary-container": "#7e7d7f",
+            "secondary-fixed-dim": "#c6c6c7",
+            "surface-bright": "#38393d",
+            "on-background": "#e3e2e7",
+            "primary-fixed": "#e5e1e4",
+            "background": "#121317",
+            "on-surface-variant": "#c8c6ca",
+            "on-primary": "#303032",
+            "primary": "#c8c6c8",
+            "error": "#ffb4ab",
+            "outline-variant": "#47464a",
+            "inverse-primary": "#5f5e60",
+            "on-error": "#690005",
+            "on-error-container": "#ffdad6",
+            "surface-container-lowest": "#0d0e12",
+            "surface": "#121317",
+            "tertiary-fixed": "#eae0de",
+            "error-container": "#93000a",
+            "on-secondary-fixed": "#1a1c1c",
+            "secondary-container": "#454747",
+            "surface-container-high": "#292a2e",
+            "surface-tint": "#c8c6c8",
+            "inverse-on-surface": "#2f3034",
+            "secondary": "#c6c6c7",
+            "on-tertiary": "#342f2e",
+            "surface-container": "#1e1f23",
+            "surface-container-low": "#1a1b1f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0px",
+            "none": "0px",
+            "lg": "0px",
+            "xl": "0px",
+            "full": "0px"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "space-lg": "1.5rem",
+            "space-md": "1rem",
+            "gutter-mobile": "1rem",
+            "space-xl": "2.5rem",
+            "gutter": "1.5rem",
+            "margin-mobile": "1.25rem",
+            "margin": "3rem",
+            "space-sm": "0.5rem"
+          },
+          "fontFamily": {
+            "headline-xl-mobile": ["Space Grotesk"],
+            "headline-sm": ["Space Grotesk"],
+            "headline-xl": ["Space Grotesk"],
+            "body-lg": ["Hanken Grotesk"],
+            "label-md": ["Space Grotesk"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "body-sm": ["Hanken Grotesk"],
+            "label-lg": ["Space Grotesk"],
+            "headline-md": ["Space Grotesk"],
+            "label-sm": ["Space Grotesk"],
+            "body-md": ["Hanken Grotesk"],
+            "headline-lg": ["Space Grotesk"]
+          },
+          "fontSize": {
+            "headline-xl-mobile": ["2.5rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.03em", "fontWeight": "700" }],
+            "headline-sm": ["1.125rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+            "headline-xl": ["4rem", { "lineHeight": "4.25rem", "letterSpacing": "-0.04em", "fontWeight": "700" }],
+            "body-lg": ["1.125rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "label-md": ["0.75rem", { "lineHeight": "0.875rem", "letterSpacing": "0.06em", "fontWeight": "500" }],
+            "headline-lg-mobile": ["1.75rem", { "lineHeight": "2rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-sm": ["0.8125rem", { "lineHeight": "1.25rem", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "label-lg": ["0.875rem", { "lineHeight": "1rem", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-md": ["1.5rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+            "label-sm": ["0.6875rem", { "lineHeight": "0.75rem", "letterSpacing": "0.08em", "fontWeight": "500" }],
+            "body-md": ["0.9375rem", { "lineHeight": "1.5rem", "letterSpacing": "0", "fontWeight": "400" }],
+            "headline-lg": ["2.5rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.03em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    * {
+      border-radius: 0 !important;
+    }
+    .monochrome-glow {
+      box-shadow: 0 0 0 1px #47464a;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .monochrome-glow:hover {
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.08), 0 0 0 1px #e3e2e7;
+    }
+    .input-field {
+      box-shadow: 0 0 0 1px #47464a;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .input-field:focus {
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.2), 0 0 0 1px #ffffff;
+      outline: none;
+    }
+    .btn-login {
+      transition: box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+    }
+    .btn-login:hover {
+      box-shadow: 0 0 0 2px #0d0e12, 0 0 0 3px #ffffff, 0 0 14px rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface m-0 p-0 w-screen h-screen overflow-hidden flex items-center justify-center font-body-md text-body-md select-none" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif;">
+<!-- Animated WebGL Shader Background -->
+<!-- STITCH_SHADER_START:ANIMATION_2 class="absolute inset-0 w-full h-full" -->
+<div class="absolute inset-0 w-full h-full" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_2" style="display:block;width:100%;height:100%" width="1280" height="1024"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_2');
+
+  // Sync the WebGL drawing-buffer size with the CSS-driven layout size.
+  // This fires on initial layout and whenever the element is resized.
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 p = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+
+    float t = u_time * 0.25;
+    
+    // Subtle layered monochrome ambient wave / smoke effect
+    float n1 = noise(p * 2.5 + vec2(t * 0.3, t * 0.1));
+    float n2 = noise(p * 5.0 - vec2(t * 0.2, t * 0.4) + n1);
+    float val = mix(n1, n2, 0.5);
+
+    // Subtle dark gradient background with ethereal white glow rings
+    float dist = length(p);
+    float glow = 0.08 / (dist * dist + 0.35);
+    
+    // Grid lines accent
+    vec2 grid = abs(fract(p * 6.0 - 0.5) - 0.5) / fwidth(p * 6.0);
+    float line = min(grid.x, grid.y);
+    float gridPattern = 1.0 - min(line, 1.0);
+
+    float shade = val * 0.12 + glow * 0.35 + gridPattern * 0.03;
+    
+    // Strictly monochrome palette
+    vec3 col = vec3(shade);
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+  // u_mouse is in pixel coordinates matching u_resolution (ShaderToy convention).
+  // Shaders that need normalized coords should use: u_mouse / u_resolution.
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      const nx = (event.clientX - rect.left) / rect.width;
+      const ny = 1.0 - (event.clientY - rect.top) / rect.height;
+      mouse.x = nx * canvas.width;
+      mouse.y = ny * canvas.height;
+    }
+  });
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_2 -->
+<!-- Ambient Minimal Overlay -->
+
+<!-- Minimalist Black and White Login Card -->
+<div class="relative z-10 w-full max-w-[420px] mx-gutter-mobile md:mx-0 p-space-xl bg-surface-container-lowest border border-outline-variant monochrome-glow" style="background-color: rgb(255, 255, 255); border: 1px solid rgb(0, 0, 0); box-shadow: none;">
+<form class="flex flex-col gap-space-lg w-full" onsubmit="event.preventDefault();"><div class="flex gap-space-sm w-full"><input class="input-field w-1/2 px-space-md py-space-md bg-surface-container-lowest border-0 text-on-surface placeholder:text-outline font-body-md text-body-md" placeholder="First Name" required="" type="text" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(0, 0, 0); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif;"><input class="input-field w-1/2 px-space-md py-space-md bg-surface-container-lowest border-0 text-on-surface placeholder:text-outline font-body-md text-body-md" placeholder="Last Name" required="" type="text" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(0, 0, 0); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif;"></div><input autocomplete="email" class="input-field w-full px-space-md py-space-md bg-surface-container-lowest border-0 text-on-surface placeholder:text-outline font-body-md text-body-md" placeholder="Email Address" required="" type="email" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(0, 0, 0); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif;"><input autocomplete="new-password" class="input-field w-full px-space-md py-space-md bg-surface-container-lowest border-0 text-on-surface placeholder:text-outline font-body-md text-body-md" placeholder="Enter Your New Password" required="" type="password" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(0, 0, 0); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif;"><input autocomplete="new-password" class="input-field w-full px-space-md py-space-md bg-surface-container-lowest border-0 text-on-surface placeholder:text-outline font-body-md text-body-md" placeholder="Re-enter Password" required="" type="password" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); border: 1px solid rgb(0, 0, 0); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif;"><button class="btn-login self-center w-full py-space-md bg-inverse-surface text-surface-container-lowest font-label-lg text-label-lg uppercase tracking-widest text-center cursor-pointer border-0" type="submit" style="background-color: rgb(0, 0, 0); color: rgb(255, 255, 255); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif; font-weight: bold;">SIGN UP</button><a href="#" class="text-center cursor-pointer text-body-md hover:underline" style="color: rgb(0, 0, 0); font-family: &quot;Comic Sans MS&quot;, &quot;Comic Sans&quot;, cursive, sans-serif; text-decoration: none; display: block; margin-top: 0.25rem;">have an account? login here</a></form>
+</div>
+
+
+</body></html>

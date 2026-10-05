@@ -1,0 +1,55 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.success {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--border);
+  animation: rise-in var(--duration-slow) var(--ease-standard) both;
+}
+
+.successTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 700;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.failure {
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--ink);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  animation: rise-in var(--duration-base) var(--ease-standard) both;
+}
+
+.connect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  font-size: var(--text-body-sm);
+  animation: rise-in var(--duration-base) var(--ease-standard) both;
+}
+
+.hint {
+  color: var(--ink-muted);
+  font-size: var(--text-label-md);
+  text-align: center;
+}
+
+.modalNote {
+  margin-top: var(--space-sm);
+  color: var(--ink-muted);
+  font-size: var(--text-body-sm);
+}

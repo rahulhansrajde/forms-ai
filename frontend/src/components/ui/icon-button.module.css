@@ -1,0 +1,104 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.button:disabled {
+  opacity: 0.4;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.plain:hover:not(:disabled),
+.plain:focus-visible {
+  border-color: var(--ink);
+  outline: none;
+}
+
+.outlined {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+.outlined:hover:not(:disabled),
+.outlined:focus-visible {
+  box-shadow: var(--focus-glow);
+  outline: none;
+}
+
+.solid {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.solid:hover:not(:disabled),
+.solid:focus-visible {
+  box-shadow: var(--button-ring);
+  outline: none;
+}
+
+.round {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-color: var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.round:hover:not(:disabled),
+.round:focus-visible {
+  box-shadow: var(--focus-glow);
+  outline: none;
+}
+
+.tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  z-index: 40;
+  padding: 0.3rem 0.55rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--text-label-md);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -4px);
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.wrapper:hover .tooltip,
+.wrapper:focus-within .tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 350ms;
+}
+
+@media (hover: none) {
+  .tooltip {
+    display: none;
+  }
+}

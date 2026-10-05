@@ -1,0 +1,13 @@
+.trigger {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transition: box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+  box-shadow: var(--button-ring);
+  outline: none;
+}

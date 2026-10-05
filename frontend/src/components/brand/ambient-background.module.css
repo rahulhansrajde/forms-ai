@@ -1,0 +1,13 @@
+.background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: fade-in 900ms var(--ease-standard) both;
+}

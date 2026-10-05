@@ -1,0 +1,67 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  background: var(--ink-scrim);
+  animation: fade-in var(--duration-base) var(--ease-standard) both;
+}
+
+.dialog {
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border: var(--border);
+  background: var(--paper);
+  box-shadow: var(--panel-glow);
+  animation: scale-in var(--duration-base) var(--ease-standard) both;
+}
+
+.dialog:focus {
+  outline: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md) 0 var(--space-lg);
+}
+
+.title {
+  font-size: var(--text-headline-sm);
+  font-weight: 700;
+}
+
+.body {
+  padding: var(--space-md) var(--space-lg);
+  color: var(--ink-strong);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog {
+    width: 100%;
+    animation-name: rise-in;
+  }
+
+  .actions > * {
+    flex: 1 1 auto;
+  }
+}

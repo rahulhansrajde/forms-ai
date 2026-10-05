@@ -1,0 +1,50 @@
+:root {
+  --ink: #000000;
+  --paper: #ffffff;
+  --ink-strong: rgba(0, 0, 0, 0.85);
+  --ink-muted: rgba(0, 0, 0, 0.62);
+  --ink-subtle: rgba(0, 0, 0, 0.45);
+  --ink-hairline: rgba(0, 0, 0, 0.16);
+  --ink-wash: rgba(0, 0, 0, 0.05);
+  --ink-scrim: rgba(0, 0, 0, 0.4);
+  --paper-muted: rgba(255, 255, 255, 0.72);
+  --paper-subtle: rgba(255, 255, 255, 0.5);
+
+  --font-family: 'Comic Sans MS', 'Comic Sans', 'Comic Neue', cursive;
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-gutter: 1.5rem;
+  --space-gutter-mobile: 1rem;
+
+  --text-label-sm: 0.6875rem;
+  --text-label-md: 0.75rem;
+  --text-label-lg: 0.875rem;
+  --text-body-sm: 0.8125rem;
+  --text-body-md: 0.9375rem;
+  --text-body-lg: 1.125rem;
+  --text-headline-sm: 1.125rem;
+  --text-headline-md: 1.5rem;
+  --text-headline-lg: 2.5rem;
+  --text-headline-lg-mobile: 1.75rem;
+
+  --border: 1px solid var(--ink);
+  --border-hairline: 1px solid var(--ink-hairline);
+  --focus-glow: 0 0 0 1px var(--ink), 0 0 12px rgba(0, 0, 0, 0.22);
+  --button-ring: 0 0 0 2px var(--paper), 0 0 0 3px var(--ink), 0 0 14px rgba(0, 0, 0, 0.3);
+  --panel-glow: 0 0 32px rgba(0, 0, 0, 0.1);
+
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 340ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 1, 1);
+
+  --header-height: 56px;
+  --sidebar-width: 288px;
+  --artifact-width: min(540px, 44vw);
+  --content-width: 760px;
+}

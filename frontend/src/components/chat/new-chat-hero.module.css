@@ -1,0 +1,41 @@
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 7.5rem;
+  overflow: hidden;
+}
+
+.phrase {
+  color: var(--paper);
+  font-size: var(--text-headline-lg);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  text-align: center;
+  text-wrap: balance;
+  transition:
+    opacity var(--duration-slow) var(--ease-standard),
+    transform var(--duration-slow) var(--ease-standard);
+}
+
+.phrase[data-phase='leaving'] {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.phrase[data-phase='entering'] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: none;
+}
+
+@media (max-width: 600px) {
+  .hero {
+    height: 6rem;
+  }
+
+  .phrase {
+    font-size: var(--text-headline-lg-mobile);
+  }
+}
