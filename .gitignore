@@ -17,3 +17,4 @@ desktop.ini
 .idea/
 google_oauth_credentials.json
 client_secret*.json
+/login, sign-up pages, app-logo, google-oauth-credentials/

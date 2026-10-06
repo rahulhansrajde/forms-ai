@@ -1,4 +1,4 @@
-name: Build and push container image
+name: Deploy to Azure App Service
 
 on:
   push:
@@ -10,18 +10,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: container-image-${{ github.ref }}
+  group: app-service-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  ACR_NAME: formsaiacr20261005
-  REGISTRY: formsaiacr20261005-feekfdgadyh0a4cr.azurecr.io
-  IMAGE_REPOSITORY: forms-ai
   NODE_VERSION: '24'
+  PACKAGE_NAME: forms-ai-release
 
 jobs:
   validate:
-    name: Validate
+    name: Validate and package
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -75,17 +73,54 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  build-and-push:
-    name: Build and push image
+      - name: Assemble deployment package
+        run: |
+          mkdir -p release/shared release/backend release/frontend
+          cp package.json package-lock.json release/
+          cp shared/package.json release/shared/
+          cp -r shared/dist release/shared/dist
+          cp backend/package.json release/backend/
+          cp -r backend/dist release/backend/dist
+          cp frontend/package.json release/frontend/
+          cp -r frontend/dist release/frontend/dist
+          cd release
+          npm ci --omit=dev --workspace=backend --no-audit --no-fund
+          rm -rf node_modules/@forms-ai
+          mkdir -p node_modules/@forms-ai/contracts
+          cp -r shared/package.json shared/dist node_modules/@forms-ai/contracts/
+          zip -qr "../${PACKAGE_NAME}.zip" .
+
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PACKAGE_NAME }}
+          path: ${{ env.PACKAGE_NAME }}.zip
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to App Service
     needs: validate
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
+    env:
+      AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - name: Require the App Service name
+        run: |
+          if [ -z "$AZURE_WEBAPP_NAME" ]; then
+            echo "::error::Set the AZURE_WEBAPP_NAME repository variable to the App Service Web App name."
+            exit 1
+          fi
+
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PACKAGE_NAME }}
 
       - name: Sign in to Azure with OpenID Connect
         uses: azure/login@v2
@@ -94,35 +129,23 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Sign in to Azure Container Registry
-        run: az acr login --name "$ACR_NAME"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image
-        id: build
-        uses: docker/build-push-action@v6
+      - name: Deploy package
+        id: deploy
+        uses: azure/webapps-deploy@v3
         with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ${{ env.PACKAGE_NAME }}.zip
 
-      - name: Publish image reference
+      - name: Publish deployment summary
         run: |
           {
-            echo "### Container image pushed"
+            echo "### Deployed to Azure App Service"
             echo ""
-            echo "\`${REGISTRY}/${IMAGE_REPOSITORY}:${GITHUB_SHA}\`"
+            echo "Web App: \`${AZURE_WEBAPP_NAME}\`"
             echo ""
-            echo "Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo ""
+            echo "URL: ${{ steps.deploy.outputs.webapp-url }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Sign out of Azure

@@ -16,7 +16,7 @@ shared/     @forms-ai/contracts: types shared by backend and frontend (form sche
 backend/    Node.js + TypeScript API (Express 5, PostgreSQL)
   src/domain          entities, value objects, ports (interfaces), pure domain services
   src/application     use cases and application services (intent engine, versioning, publishing)
-  src/infrastructure  PostgreSQL repositories + migrations, Claude and offline AI adapters, Google gateways, security
+  src/infrastructure  PostgreSQL repositories + migrations, Gemini and offline AI adapters, Google gateways, security
   src/presentation    controllers, routes, middleware, request validation
   src/composition     composition root wiring every dependency
 frontend/   React + Vite + TypeScript single-page app
@@ -79,27 +79,36 @@ FRONTEND_DIST_DIRECTORY=../frontend/dist NODE_ENV=production npm start
 
 In production the API serves the built frontend, sets `Secure` cookies and applies a strict Content Security Policy. Set `TRUST_PROXY=true` behind a reverse proxy, and update the Google OAuth client with the production origin and redirect URI.
 
-## Docker
+## Azure App Service
 
-```bash
-docker build -t forms-ai .
-docker run --env-file .env -p 8080:8080 forms-ai
-```
+Forms AI deploys as a native Node.js app to Azure App Service (Linux) with Azure Database for PostgreSQL Flexible Server, through `.github/workflows/deploy.yml`:
 
-The multi-stage `Dockerfile` builds all workspaces with `npm ci` and `npm run build`, then ships only production dependencies and the compiled `shared`, `backend` and `frontend` output. The container runs `node dist/main.js` (the backend start command) as the unprivileged `node` user, listens on all interfaces on `PORT` (8080 by default), serves the built frontend from the same origin, applies pending database migrations at startup (forward-only, never destructive) and reports health on `GET /health`. No `.env`, credentials or secrets are copied into the image; everything is supplied at runtime.
+1. Every push to `main` runs typecheck, lint, unit and integration tests, the PostgreSQL integration suite, the Playwright journeys and the production build.
+2. The workflow assembles a ready-to-run package: the root, `shared`, `backend` and `frontend` manifests, the compiled `dist` folders and production-only `node_modules`.
+3. It signs in to Azure with OpenID Connect (repository secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, no stored passwords) and deploys the package to the Web App named by the repository variable `AZURE_WEBAPP_NAME`.
 
-Values passed with `--env-file` (or as App Service settings) override the image defaults, so the file used for the container must contain container values, not the local development ones:
+App Service runs `npm start` from the package root, which starts the backend. The backend listens on the `PORT` App Service provides, serves the built frontend from the same origin, applies pending database migrations at startup (forward-only, never destructive) and reports health on `GET /health`.
 
-| Variable | Container value |
+Web App configuration:
+
+| Setting | Value |
 | --- | --- |
-| `NODE_ENV`, `PORT`, `FRONTEND_DIST_DIRECTORY` | leave unset (the image sets `production`, `8080`, `/app/frontend/dist`); never set them to the development values |
-| `DATABASE_URL` | the external PostgreSQL URL. `localhost` points at the container itself; use the managed database host (or `host.docker.internal` for a database on the Docker host) |
-| `DATABASE_SSL` | `true` for managed PostgreSQL that requires TLS |
-| `FRONTEND_ORIGIN` | the public URL of the app, for example `https://forms.example.com` or `http://localhost:8080` locally |
+| Runtime stack | Node 24 LTS on Linux |
+| Startup command | leave empty (`npm start` is used) |
+| `SCM_DO_BUILD_DURING_DEPLOYMENT` | `false` (the package is already built) |
+| `NODE_ENV` | `production` |
+| `FRONTEND_DIST_DIRECTORY` | `/home/site/wwwroot/frontend/dist` |
+| `DATABASE_URL` | `postgres://<user>:<password>@<server>.postgres.database.azure.com:5432/<database>` (URL-encode special characters in the password) |
+| `DATABASE_SSL` | `true` |
+| `FRONTEND_ORIGIN` | the public URL of the app, for example `https://<app>.azurewebsites.net` |
 | `GOOGLE_REDIRECT_URI` | `<public URL>/auth/google/callback`, also registered in the Google OAuth client together with the public URL as a JavaScript origin |
-| `TOKEN_ENCRYPTION_KEY` | the same key as before, otherwise stored Google tokens cannot be decrypted |
-| `TRUST_PROXY` | `true` behind a TLS-terminating proxy such as App Service |
+| `TRUST_PROXY` | `true` |
+| `TOKEN_ENCRYPTION_KEY` | a base64 32-byte key; keep it stable, otherwise stored Google tokens cannot be decrypted |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AI_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODELS`, `SESSION_TTL_HOURS`, `DATABASE_MAX_CONNECTIONS` | as in `.env.example` |
+
+`deploy.yml` is the only deployment path. Do not connect the repository through the Web App's Deployment Center, because it commits a second, generated workflow that would deploy without running the test suite.
+
+`PORT` is set by App Service and must not be overridden. The Microsoft Entra application used by the workflow needs the Website Contributor role (or Contributor) on the Web App, and its federated credential must trust `repo:<owner>/<repository>:ref:refs/heads/main`.
 
 ## Quality gates
 
