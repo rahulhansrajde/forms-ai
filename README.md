@@ -85,7 +85,7 @@ Forms AI deploys as a native Node.js app to Azure App Service (Linux) with Azure
 
 1. Every push to `main` runs typecheck, lint, unit and integration tests, the PostgreSQL integration suite, the Playwright journeys and the production build.
 2. The workflow assembles a ready-to-run package: the root, `shared`, `backend` and `frontend` manifests, the compiled `dist` folders and production-only `node_modules`.
-3. It signs in to Azure with OpenID Connect (repository secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, no stored passwords) and deploys the package to the Web App named by the repository variable `AZURE_WEBAPP_NAME`.
+3. It signs in to Azure with OpenID Connect, using the `AZUREAPPSERVICE_CLIENTID_*`, `AZUREAPPSERVICE_TENANTID_*` and `AZUREAPPSERVICE_SUBSCRIPTIONID_*` repository secrets created by the Web App's Deployment Center (no stored passwords), and deploys the package to the `Forms-AI` Web App.
 
 App Service runs `npm start` from the package root, which starts the backend. The backend listens on the `PORT` App Service provides, serves the built frontend from the same origin, applies pending database migrations at startup (forward-only, never destructive) and reports health on `GET /health`.
 
@@ -106,9 +106,9 @@ Web App configuration:
 | `TOKEN_ENCRYPTION_KEY` | a base64 32-byte key; keep it stable, otherwise stored Google tokens cannot be decrypted |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AI_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODELS`, `SESSION_TTL_HOURS`, `DATABASE_MAX_CONNECTIONS` | as in `.env.example` |
 
-`deploy.yml` is the only deployment path. Do not connect the repository through the Web App's Deployment Center, because it commits a second, generated workflow that would deploy without running the test suite.
+`deploy.yml` is the only deployment path. If the Deployment Center is reconnected, it commits another generated workflow (`main_forms-ai.yml`) that deploys without running the test suite; delete that file and update the secret names in `deploy.yml` instead.
 
-`PORT` is set by App Service and must not be overridden. The Microsoft Entra application used by the workflow needs the Website Contributor role (or Contributor) on the Web App, and its federated credential must trust `repo:<owner>/<repository>:ref:refs/heads/main`.
+`PORT` is set by App Service and must not be overridden.
 
 ## Quality gates
 

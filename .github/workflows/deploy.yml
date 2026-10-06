@@ -16,6 +16,7 @@ concurrency:
 env:
   NODE_VERSION: '24'
   PACKAGE_NAME: forms-ai-release
+  AZURE_WEBAPP_NAME: Forms-AI
 
 jobs:
   validate:
@@ -84,6 +85,7 @@ jobs:
           cp frontend/package.json release/frontend/
           cp -r frontend/dist release/frontend/dist
           cd release
+          npm pkg delete scripts.build
           npm ci --omit=dev --workspace=backend --no-audit --no-fund
           rm -rf node_modules/@forms-ai
           mkdir -p node_modules/@forms-ai/contracts
@@ -107,16 +109,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    env:
-      AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
     steps:
-      - name: Require the App Service name
-        run: |
-          if [ -z "$AZURE_WEBAPP_NAME" ]; then
-            echo "::error::Set the AZURE_WEBAPP_NAME repository variable to the App Service Web App name."
-            exit 1
-          fi
-
       - name: Download deployment package
         uses: actions/download-artifact@v4
         with:
@@ -125,15 +118,16 @@ jobs:
       - name: Sign in to Azure with OpenID Connect
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8F6069E22A934DBFB024F195C0C1DED7 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C9C0B7C5E210458BB74002B2900586BC }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6E819B53724E453B9970C45DF8F5443E }}
 
       - name: Deploy package
         id: deploy
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: Production
           package: ${{ env.PACKAGE_NAME }}.zip
 
       - name: Publish deployment summary
