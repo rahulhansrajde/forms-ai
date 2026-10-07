@@ -12,7 +12,6 @@ interface WorkspaceLayoutProps {
   onSidebarChange(open: boolean): void;
   onNewChat(): void;
   activeConversationId: string | null;
-  headerActions?: ReactNode;
   artifact?: ReactNode;
   artifactOpen?: boolean;
   children: ReactNode;
@@ -23,7 +22,6 @@ export function WorkspaceLayout({
   onSidebarChange,
   onNewChat,
   activeConversationId,
-  headerActions,
   artifact,
   artifactOpen = false,
   children,
@@ -65,7 +63,6 @@ export function WorkspaceLayout({
             </Link>
           </div>
           <div className={styles.headerEnd}>
-            {headerActions}
             <UserMenu />
           </div>
         </header>

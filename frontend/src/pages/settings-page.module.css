@@ -7,6 +7,10 @@
   overflow-y: auto;
 }
 
+.back {
+  margin-bottom: var(--space-md);
+}
+
 .title {
   margin-bottom: var(--space-lg);
   font-size: var(--text-headline-lg);

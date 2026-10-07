@@ -183,6 +183,15 @@ describe('chat workspace', () => {
     expect(within(panel).queryByRole('link', { name: 'Open form' })).not.toBeInTheDocument();
   });
 
+  it('offers a Back button on Settings that returns to the chat when Settings was opened directly', async () => {
+    const { services } = createFakeServices();
+    renderApp(services, '/settings?section=security');
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Back' }));
+    expect(await screen.findByRole('heading', { name: 'Start a new chat' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Settings' })).not.toBeInTheDocument();
+  });
+
   it('loads only the selected conversation and older messages on demand', async () => {
     const { services, spies } = createFakeServices();
     spies.getConversation.mockResolvedValue({
@@ -213,7 +222,8 @@ describe('chat workspace', () => {
       expect(spies.messages).toHaveBeenCalledTimes(1);
       expect(spies.messages).toHaveBeenCalledWith('conversation-7', null);
       expect(spies.getDraft).not.toHaveBeenCalled();
-      expect(screen.getByRole('button', { name: /show preview/i })).toBeInTheDocument();
+      expect(within(screen.getByRole('banner')).queryByRole('button', { name: /preview/i })).not.toBeInTheDocument();
+      expect(within(screen.getByRole('banner')).getByRole('button', { name: /account menu/i })).toBeInTheDocument();
 
       await act(async () => {
         callbacks.at(-1)?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);

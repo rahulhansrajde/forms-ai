@@ -1,6 +1,8 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleSection, PreferencesSection, ProfileSection, SecuritySection } from '../components/settings/settings-sections';
+import { Button } from '../components/ui/button';
+import { Icon } from '../components/ui/icon';
 import { WorkspaceLayout } from '../layouts/workspace-layout';
 import { useToast } from '../state/toast-context';
 import { googleReturnMessage } from '../utils/google-return';
@@ -37,6 +39,15 @@ export function SettingsPage() {
 
   const select = (section: SectionId) => setSearchParams({ section }, { replace: true });
 
+  const goBack = () => {
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (historyIndex > 0) {
+      navigate(-1);
+    } else {
+      navigate('/chat', { replace: true });
+    }
+  };
+
   const handleTabKeys = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = SECTIONS.findIndex((section) => section.id === active);
     const step = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0;
@@ -59,6 +70,9 @@ export function SettingsPage() {
       activeConversationId={null}
     >
       <div className={styles.page}>
+        <Button variant="secondary" size="sm" icon={<Icon name="chevronLeft" size={16} />} className={styles.back} onClick={goBack}>
+          Back
+        </Button>
         <h1 className={styles.title}>Settings</h1>
         <div className={styles.layout}>
           <div className={styles.tabs} role="tablist" aria-label="Settings sections" aria-orientation="vertical" onKeyDown={handleTabKeys}>

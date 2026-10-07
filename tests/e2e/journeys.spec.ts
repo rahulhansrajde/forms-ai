@@ -171,6 +171,25 @@ test('settings shows profile and Google connection state @responsive', async ({ 
   await page.getByRole('tab', { name: 'Google Forms' }).click();
   await expect(page.getByText('Not connected')).toBeVisible();
   await capture(page, `test-results/screens/settings-${test.info().project.name}.png`);
+  await page.getByRole('button', { name: 'Back' }).click();
+  await expect(page).toHaveURL(/\/chat$/);
+});
+
+test('settings Back returns to the page that opened it', async ({ page }) => {
+  await signUp(page);
+  await sendMessage(page, 'Create a feedback form for students.');
+  await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/);
+  const conversationUrl = page.url();
+  await expect(page.getByRole('banner').getByRole('button', { name: /preview/i })).toHaveCount(0);
+  await openPreview(page);
+  await page.getByRole('button', { name: /Account menu/ }).click();
+  await page.getByRole('menuitem', { name: /Settings/ }).click();
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Security' }).click();
+  await page.getByRole('tab', { name: 'Preferences' }).click();
+  await page.getByRole('button', { name: 'Back' }).click();
+  await expect(page).toHaveURL(conversationUrl);
+  await expect(page.getByRole('button', { name: 'Show preview' }).first()).toBeVisible();
 });
 
 test('login screen renders in the original visual language @responsive', async ({ page }) => {

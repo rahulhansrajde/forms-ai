@@ -7,8 +7,6 @@ import { ChatComposer, type ChatComposerHandle } from '../components/chat/chat-c
 import { MessageList } from '../components/chat/message-list';
 import { NewChatHero } from '../components/chat/new-chat-hero';
 import { Button } from '../components/ui/button';
-import { Icon } from '../components/ui/icon';
-import { IconButton } from '../components/ui/icon-button';
 import { EmptyState, InlineError, LoadingState } from '../components/ui/states';
 import { useConversationMessages } from '../hooks/use-conversation-messages';
 import { useDraftWorkspace } from '../hooks/use-draft-workspace';
@@ -103,23 +101,12 @@ export function ChatWorkspacePage() {
   const showHero = messages.conversationId === null && pending === null;
   const openPreview = hasDraft ? () => setPreviewOpen(true) : null;
 
-  const headerActions = hasDraft ? (
-    compact ? (
-      <IconButton icon="preview" variant="outlined" label={previewOpen ? 'Hide preview' : 'Show preview'} aria-pressed={previewOpen} onClick={() => setPreviewOpen((open) => !open)} />
-    ) : (
-      <Button variant="secondary" size="sm" icon={<Icon name="preview" size={16} />} aria-pressed={previewOpen} onClick={() => setPreviewOpen((open) => !open)}>
-        {previewOpen ? 'Hide preview' : 'Show preview'}
-      </Button>
-    )
-  ) : null;
-
   return (
     <WorkspaceLayout
       sidebarOpen={sidebarOpen}
       onSidebarChange={setSidebarOpen}
       onNewChat={startNewChat}
       activeConversationId={messages.conversationId}
-      headerActions={headerActions}
       artifactOpen={previewOpen && hasDraft}
       artifact={
         <ArtifactPanel
