@@ -19,6 +19,7 @@ export const PUBLISH_STEPS = [
   'ADD_ITEMS',
   'APPLY_SETTINGS',
   'RETRIEVE_FORM',
+  'VERIFY_FORM',
   'PERSIST_RESULT',
   'COMPLETED',
 ] as const;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GoogleFormItemNormalizer } from '../../../src/infrastructure/google/google-form-item-normalizer.js';
 import { GoogleFormRequestBuilder } from '../../../src/infrastructure/google/google-form-request-builder.js';
 import { GoogleFormsApiGateway } from '../../../src/infrastructure/google/google-forms-api-gateway.js';
 import { GOOGLE_OAUTH_SCOPES, GoogleOAuthHttpGateway } from '../../../src/infrastructure/google/google-oauth-http-gateway.js';
@@ -85,7 +86,7 @@ describe('GoogleFormsApiGateway', () => {
       { status: 200, body: { formId: 'f1', items: [{}, {}] } },
       { status: 200, body: {} },
     ]);
-    await new GoogleFormsApiGateway(http, new GoogleFormRequestBuilder(), new SilentLogger()).replaceItems('token', 'f1', sampleForm());
+    await formsGateway(http).replaceItems('token', 'f1', sampleForm());
     const batch = JSON.parse(http.requests[1]?.body ?? '{}') as { requests: Array<Record<string, unknown>> };
     expect(batch.requests.slice(0, 2)).toEqual([{ deleteItem: { location: { index: 0 } } }, { deleteItem: { location: { index: 0 } } }]);
     expect(batch.requests[2]).toHaveProperty('createItem');
@@ -94,17 +95,36 @@ describe('GoogleFormsApiGateway', () => {
   });
 
   it('maps API failures to typed errors', async () => {
-    const gateway = (status: number) =>
-      new GoogleFormsApiGateway(new ScriptedHttpClient([{ status, body: { error: { message: 'internal detail' } } }]), new GoogleFormRequestBuilder(), new SilentLogger());
+    const gateway = (status: number) => formsGateway(new ScriptedHttpClient([{ status, body: { error: { message: 'internal detail' } } }]));
     await expect(gateway(500).createForm('token', 'Title')).rejects.toBeInstanceOf(GoogleFormsError);
     await expect(gateway(403).createForm('token', 'Title')).rejects.toMatchObject({ code: 'GOOGLE_RECONNECT_REQUIRED' });
   });
 
-  it('returns responder and editor links', async () => {
-    const http = new ScriptedHttpClient([{ status: 200, body: { formId: 'f1', responderUri: 'https://docs.google.com/forms/d/e/x/viewform' } }]);
-    expect(await new GoogleFormsApiGateway(http, new GoogleFormRequestBuilder(), new SilentLogger()).fetchLinks('token', 'f1')).toEqual({
-      responderUrl: 'https://docs.google.com/forms/d/e/x/viewform',
-      editUrl: 'https://docs.google.com/forms/d/f1/edit',
-    });
+  it('reads the published form back with its links, info and normalized items', async () => {
+    const http = new ScriptedHttpClient([
+      {
+        status: 200,
+        body: {
+          formId: 'f1',
+          responderUri: 'https://docs.google.com/forms/d/e/x/viewform',
+          info: { title: ' Title ', description: 'About' },
+          items: [
+            { title: 'Name', questionItem: { question: { required: true, textQuestion: {} } } },
+            { title: 'Part two', pageBreakItem: {} },
+            { title: 'Pick', questionItem: { question: { choiceQuestion: { type: 'DROP_DOWN', options: [{ value: 'A' }, { value: 'B' }] } } } },
+          ],
+        },
+      },
+    ]);
+    const snapshot = await formsGateway(http).readForm('token', 'f1');
+    expect(snapshot.links).toEqual({ responderUrl: 'https://docs.google.com/forms/d/e/x/viewform', editUrl: 'https://docs.google.com/forms/d/f1/edit' });
+    expect(snapshot).toMatchObject({ title: 'Title', description: 'About' });
+    expect(snapshot.items.map((item) => item.kind)).toEqual(['QUESTION', 'PAGE_BREAK', 'QUESTION']);
+    expect(snapshot.items[0]?.question).toMatchObject({ kind: 'TEXT', required: true });
+    expect(snapshot.items[2]?.question).toMatchObject({ kind: 'CHOICE_DROP_DOWN', required: false, options: ['A', 'B'] });
   });
 });
+
+function formsGateway(http: ScriptedHttpClient): GoogleFormsApiGateway {
+  return new GoogleFormsApiGateway(http, new GoogleFormRequestBuilder(), new GoogleFormItemNormalizer(), new SilentLogger());
+}

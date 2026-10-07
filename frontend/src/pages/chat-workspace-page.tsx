@@ -1,3 +1,4 @@
+import type { PublishResult } from '@forms-ai/contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArtifactPanel } from '../components/artifact/artifact-panel';
@@ -88,6 +89,16 @@ export function ChatWorkspacePage() {
     }
   };
 
+  const receivePublication = (result: PublishResult) => {
+    workspace.recordPublication(result.publication);
+    if (result.message) {
+      messages.append([result.message]);
+    }
+    if (result.message?.publishedForm) {
+      notify('Your Google Form is ready. The links are in the chat.');
+    }
+  };
+
   const hasDraft = messages.activeDraftId !== null;
   const showHero = messages.conversationId === null && pending === null;
   const openPreview = hasDraft ? () => setPreviewOpen(true) : null;
@@ -116,6 +127,7 @@ export function ChatWorkspacePage() {
           modal={compact}
           conversationId={messages.conversationId}
           workspace={workspace}
+          onPublished={receivePublication}
           onClose={() => setPreviewOpen(false)}
         />
       }

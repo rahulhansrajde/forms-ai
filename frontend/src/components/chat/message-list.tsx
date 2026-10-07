@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Icon } from '../ui/icon';
 import { Logo } from '../ui/logo';
 import { Spinner } from '../ui/spinner';
+import { GoogleFormCreatedMessage } from './google-form-created-message';
 import styles from './message-list.module.css';
 
 interface MessageListProps {
@@ -114,7 +115,11 @@ function MessageItem({ message, onShowPreview }: { message: MessageView; onShowP
       </span>
       <div className={styles.assistantBody}>
         <span className="visually-hidden">Forms AI said:</span>
-        <p className={styles.assistantText}>{message.content}</p>
+        {message.publishedForm ? (
+          <GoogleFormCreatedMessage content={message.content} form={message.publishedForm} />
+        ) : (
+          <p className={styles.assistantText}>{message.content}</p>
+        )}
         {onShowPreview && offersPreview(message.intent) ? (
           <Button variant="secondary" size="sm" icon={<Icon name="preview" size={16} />} onClick={onShowPreview}>
             Show preview

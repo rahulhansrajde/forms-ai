@@ -10,7 +10,7 @@ import type {
   GoogleConnectionView,
   LogInRequest,
   MessageView,
-  PublicationView,
+  PublishResult,
   SendMessageResult,
   SignUpRequest,
   UpdateProfileRequest,
@@ -105,8 +105,8 @@ export class GoogleService {
     await this.api.delete<void>('/integrations/google');
   }
 
-  async publish(draftId: string, versionId: string): Promise<PublicationView> {
-    return (await this.api.post<{ publication: PublicationView }>('/google-forms/publish', { draftId, versionId })).publication;
+  async publish(draftId: string, versionId: string): Promise<PublishResult> {
+    return this.api.post<PublishResult>('/google-forms/publish', { draftId, versionId });
   }
 
   authorizationPath(returnTo: string): string {

@@ -2,13 +2,15 @@ import { randomBytes } from 'node:crypto';
 import type { FormSchema } from '@forms-ai/contracts';
 import { ApplicationContainer } from '../../../backend/src/composition/application-container.js';
 import type {
-  GoogleFormLinks,
+  GoogleFormSnapshot,
   GoogleFormsGateway,
   OAuthGateway,
   OAuthIdentity,
   OAuthTokenGrant,
 } from '../../../backend/src/domain/interfaces/google.js';
 import { ConfigurationLoader } from '../../../backend/src/infrastructure/configuration/app-config.js';
+import { GoogleFormItemNormalizer } from '../../../backend/src/infrastructure/google/google-form-item-normalizer.js';
+import { GoogleFormRequestBuilder } from '../../../backend/src/infrastructure/google/google-form-request-builder.js';
 import { GoogleFormsError } from '../../../backend/src/shared/errors/application-errors.js';
 
 const API_ORIGIN = 'http://localhost:5000';
@@ -42,6 +44,9 @@ class ConsentFreeOAuthGateway implements OAuthGateway {
 class RecordingFormsGateway implements GoogleFormsGateway {
   private created = 0;
   private readonly failedOnce = new Set<string>();
+  private readonly stored = new Map<string, FormSchema>();
+  private readonly requests = new GoogleFormRequestBuilder();
+  private readonly normalizer = new GoogleFormItemNormalizer();
 
   async createForm(): Promise<string> {
     this.created += 1;
@@ -53,14 +58,22 @@ class RecordingFormsGateway implements GoogleFormsGateway {
       this.failedOnce.add(formId);
       throw new GoogleFormsError('Google Forms could not add items. Please try again.');
     }
+    this.stored.set(formId, schema);
   }
 
   async applySettings(): Promise<void> {}
 
-  async fetchLinks(_accessToken: string, formId: string): Promise<GoogleFormLinks> {
+  async readForm(_accessToken: string, formId: string): Promise<GoogleFormSnapshot> {
+    const schema = this.stored.get(formId);
     return {
-      responderUrl: `https://docs.google.com/forms/d/e/${formId}/viewform`,
-      editUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+      formId,
+      title: schema?.title.trim() ?? '',
+      description: schema?.description.trim() ?? '',
+      links: {
+        responderUrl: `https://docs.google.com/forms/d/e/${formId}/viewform`,
+        editUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+      },
+      items: schema ? this.requests.buildCreateItemRequests(schema).map((request) => this.normalizer.normalize(request.createItem.item)) : [],
     };
   }
 }

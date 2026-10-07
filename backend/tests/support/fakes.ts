@@ -1,12 +1,14 @@
 import type { FormSchema } from '@forms-ai/contracts';
 import type {
-  GoogleFormLinks,
+  GoogleFormSnapshot,
   GoogleFormsGateway,
   OAuthGateway,
   OAuthIdentity,
   OAuthTokenGrant,
 } from '../../src/domain/interfaces/google.js';
 import type { Logger } from '../../src/domain/interfaces/system.js';
+import { GoogleFormItemNormalizer } from '../../src/infrastructure/google/google-form-item-normalizer.js';
+import { GoogleFormRequestBuilder } from '../../src/infrastructure/google/google-form-request-builder.js';
 import { GoogleFormsError, GoogleOAuthError } from '../../src/shared/errors/application-errors.js';
 
 export class SilentLogger implements Logger {
@@ -75,12 +77,16 @@ export class FakeOAuthGateway implements OAuthGateway {
   }
 }
 
-export type FormsGatewayStep = 'createForm' | 'replaceItems' | 'applySettings' | 'fetchLinks';
+export type FormsGatewayStep = 'createForm' | 'replaceItems' | 'applySettings' | 'readForm';
 
 export class FakeGoogleFormsGateway implements GoogleFormsGateway {
   readonly createdForms: Array<{ formId: string; title: string; accessToken: string }> = [];
   readonly populatedSchemas: Array<{ formId: string; schema: FormSchema }> = [];
   readonly failures = new Set<FormsGatewayStep>();
+  storeOnly: ((schema: FormSchema) => FormSchema) | null = null;
+  private readonly stored = new Map<string, FormSchema>();
+  private readonly requests = new GoogleFormRequestBuilder();
+  private readonly normalizer = new GoogleFormItemNormalizer();
   private counter = 0;
 
   async createForm(accessToken: string, title: string): Promise<string> {
@@ -94,17 +100,25 @@ export class FakeGoogleFormsGateway implements GoogleFormsGateway {
   async replaceItems(_accessToken: string, formId: string, schema: FormSchema): Promise<void> {
     this.failIfRequested('replaceItems');
     this.populatedSchemas.push({ formId, schema });
+    this.stored.set(formId, this.storeOnly ? this.storeOnly(schema) : schema);
   }
 
   async applySettings(): Promise<void> {
     this.failIfRequested('applySettings');
   }
 
-  async fetchLinks(_accessToken: string, formId: string): Promise<GoogleFormLinks> {
-    this.failIfRequested('fetchLinks');
+  async readForm(_accessToken: string, formId: string): Promise<GoogleFormSnapshot> {
+    this.failIfRequested('readForm');
+    const schema = this.stored.get(formId);
     return {
-      responderUrl: `https://docs.google.com/forms/d/e/${formId}/viewform`,
-      editUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+      formId,
+      title: schema?.title.trim() ?? '',
+      description: schema?.description.trim() ?? '',
+      links: {
+        responderUrl: `https://docs.google.com/forms/d/e/${formId}/viewform`,
+        editUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+      },
+      items: schema ? this.requests.buildCreateItemRequests(schema).map((request) => this.normalizer.normalize(request.createItem.item)) : [],
     };
   }
 

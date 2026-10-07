@@ -33,6 +33,7 @@ import { IntentDetectionService } from '../application/services/intent/intent-de
 import { IntentStatePolicy } from '../application/services/intent/intent-state-policy.js';
 import { KeysetCursorCodec } from '../application/services/pagination/keyset-cursor-codec.js';
 import { GoogleFormPublisher } from '../application/services/publishing/google-form-publisher.js';
+import { PublicationAnnouncer } from '../application/services/publishing/publication-announcer.js';
 import { PublishJobTracker } from '../application/services/publishing/publish-job-tracker.js';
 import { SuggestionGenerationService } from '../application/services/suggestions/suggestion-generation-service.js';
 import { SuggestionSelectionService } from '../application/services/suggestions/suggestion-selection-service.js';
@@ -247,8 +248,9 @@ export class ApplicationModules {
   }
 
   private createGoogleUseCases(): { oauth: GoogleOAuthUseCases; integration: GoogleIntegrationUseCases } {
-    const { oauthGateway, formsGateway, connectedAccounts, createdForms, drafts, publishJobs, tokenGenerator, tokenDigester } =
+    const { oauthGateway, formsGateway, formVerifier, connectedAccounts, createdForms, drafts, publishJobs, tokenGenerator, tokenDigester } =
       this.infrastructure;
+    const { messages, conversations } = this.infrastructure;
     const { identifiers, clock, logger, database } = this.infrastructure;
     const oauth = new GoogleOAuthService(oauthGateway, connectedAccounts, tokenGenerator, identifiers, clock);
     const credentials = new GoogleCredentialService(oauthGateway, connectedAccounts, clock);
@@ -260,16 +262,14 @@ export class ApplicationModules {
       integration: {
         status: new GetGoogleConnectionStatusUseCase(connectedAccounts),
         disconnect: new DisconnectGoogleAccountUseCase(connectedAccounts, oauthGateway, logger),
-        publish: new CreateGoogleFormUseCase(
-          this.draftAccess,
-          this.versions,
-          this.forms.validator,
-          credentials,
-          new GoogleFormPublisher(formsGateway, createdForms, drafts, database, identifiers, clock),
-          new PublishJobTracker(publishJobs, identifiers, clock),
+        publish: new CreateGoogleFormUseCase(this.draftAccess, this.versions, this.forms.validator, credentials, {
+          publisher: new GoogleFormPublisher(formsGateway, formVerifier, createdForms, drafts, database, identifiers, clock),
+          tracker: new PublishJobTracker(publishJobs, identifiers, clock),
+          announcer: new PublicationAnnouncer(messages, conversations, identifiers, clock),
           createdForms,
-          this.draftViews,
-        ),
+          draftViews: this.draftViews,
+          transactions: database,
+        }),
       },
     };
   }

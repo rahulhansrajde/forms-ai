@@ -106,9 +106,17 @@ test('journey 6: connect Google through OAuth and create the Google Form', async
   const dialog = page.getByRole('dialog', { name: 'Create a Google Form?' });
   await expect(dialog).toContainText('forms.ai.e2e@gmail.com');
   await dialog.getByRole('button', { name: 'Create GForm' }).click();
-  await expect(panel.getByText('Google Form created successfully')).toBeVisible();
-  await expect(panel.getByRole('link', { name: 'Open form' })).toHaveAttribute('href', /viewform$/);
-  await expect(panel.getByRole('link', { name: 'Open editor' })).toHaveAttribute('href', /\/edit$/);
+  const result = page.getByRole('log', { name: 'Conversation' }).getByRole('region', { name: 'Google Form created' });
+  await expect(result).toContainText('Google Form created successfully. Your form is ready.');
+  await expect(result.getByRole('link', { name: 'Open form' })).toHaveAttribute('href', /viewform$/);
+  await expect(result.getByRole('link', { name: 'Open editor' })).toHaveAttribute('href', /\/edit$/);
+  await expect(result.getByRole('img', { name: /QR code that opens the form/ })).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'Open form' })).toHaveCount(0);
+  await expect(panel.getByText(/created successfully/)).toHaveCount(0);
+  await expect(panel.getByLabel('Form title')).toBeEditable();
+
+  await page.reload();
+  await expect(page.getByRole('region', { name: 'Google Form created' })).toBeVisible();
 });
 
 test('journey 7: a failed publish keeps the draft and can be retried', async ({ page }) => {
@@ -131,7 +139,10 @@ test('journey 7: a failed publish keeps the draft and can be retried', async ({ 
 
   await panel.getByRole('button', { name: 'Retry Create GForm' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Create GForm' }).click();
-  await expect(panel.getByText('Google Form created successfully')).toBeVisible();
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByRole('region', { name: 'Google Form created' })).toBeVisible();
+  await expect(log.getByText(/could not be created/)).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'Open form' })).toHaveCount(0);
 });
 
 test('history sidebar lists conversations and reopens one @responsive', async ({ page }) => {

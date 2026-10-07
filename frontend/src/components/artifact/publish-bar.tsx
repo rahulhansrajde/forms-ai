@@ -1,11 +1,10 @@
-import type { DraftView, PublicationView } from '@forms-ai/contracts';
+import type { DraftView, MessageView, PublicationView, PublishResult } from '@forms-ai/contracts';
 import { useState } from 'react';
 import type { GoogleConnection } from '../../hooks/use-google-connection';
 import { ApiError } from '../../services/api-client';
 import { useServices } from '../../state/services-context';
 import { errorMessage } from '../../utils/error-messages';
 import { Button, ButtonLink } from '../ui/button';
-import { Icon } from '../ui/icon';
 import { Modal } from '../ui/modal';
 import styles from './publish-bar.module.css';
 
@@ -16,16 +15,21 @@ interface PublishBarProps {
   conversationId: string;
   google: GoogleConnection;
   busy: boolean;
-  onPublication(publication: PublicationView): void;
+  onPublished(result: PublishResult): void;
   onStaleDraft(): void;
 }
 
-function publicationFromError(error: unknown): PublicationView | null {
-  const publication = error instanceof ApiError ? error.details?.publication : null;
-  return publication && typeof publication === 'object' ? (publication as PublicationView) : null;
+function resultFromError(error: unknown): PublishResult | null {
+  const details = error instanceof ApiError ? error.details : null;
+  const publication = details?.publication;
+  if (!publication || typeof publication !== 'object') {
+    return null;
+  }
+  const message = details?.message;
+  return { publication: publication as PublicationView, message: message && typeof message === 'object' ? (message as MessageView) : null };
 }
 
-export function PublishBar({ draft, conversationId, google, busy, onPublication, onStaleDraft }: PublishBarProps) {
+export function PublishBar({ draft, conversationId, google, busy, onPublished, onStaleDraft }: PublishBarProps) {
   const { google: googleService } = useServices();
   const [phase, setPhase] = useState<PublishPhase>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +45,7 @@ export function PublishBar({ draft, conversationId, google, busy, onPublication,
   const publish = async () => {
     setPhase('publishing');
     try {
-      onPublication(await googleService.publish(draft.id, draft.currentVersion.id));
+      onPublished(await googleService.publish(draft.id, draft.currentVersion.id));
       setPhase('idle');
     } catch (caught) {
       handleFailure(caught);
@@ -49,9 +53,9 @@ export function PublishBar({ draft, conversationId, google, busy, onPublication,
   };
 
   const handleFailure = (caught: unknown) => {
-    const failedPublication = publicationFromError(caught);
-    if (failedPublication) {
-      onPublication(failedPublication);
+    const failed = resultFromError(caught);
+    if (failed) {
+      onPublished(failed);
     }
     if (caught instanceof ApiError && (caught.code === 'GOOGLE_NOT_CONNECTED' || caught.code === 'GOOGLE_RECONNECT_REQUIRED')) {
       google.markDisconnected();
@@ -68,22 +72,6 @@ export function PublishBar({ draft, conversationId, google, busy, onPublication,
 
   return (
     <div className={styles.bar}>
-      {publication?.status === 'SUCCEEDED' && publication.responderUrl && publication.editUrl ? (
-        <div className={styles.success} role="status">
-          <p className={styles.successTitle}>
-            <Icon name="check" size={18} />
-            {publishedCurrent ? 'Google Form created successfully' : 'An earlier version was published'}
-          </p>
-          <div className={styles.links}>
-            <ButtonLink href={publication.responderUrl} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm" icon={<Icon name="external" size={16} />}>
-              Open form
-            </ButtonLink>
-            <ButtonLink href={publication.editUrl} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm" icon={<Icon name="external" size={16} />}>
-              Open editor
-            </ButtonLink>
-          </div>
-        </div>
-      ) : null}
       {publication?.status === 'FAILED' && !error ? (
         <p className={styles.failure} role="alert">
           The last attempt failed{publication.error ? `: ${publication.error}` : '.'} Your draft is safe.
@@ -102,9 +90,10 @@ export function PublishBar({ draft, conversationId, google, busy, onPublication,
           </ButtonLink>
         </div>
       ) : null}
+      {publishedCurrent ? <p className={styles.hint}>Version {draft.currentVersion.versionNumber} is in Google Forms. Edit the draft to create a new version.</p> : null}
       {!publishedCurrent && phase !== 'needs-connection' ? (
         <>
-          <Button block loading={phase === 'publishing'} disabled={busy} onClick={requestPublish}>
+          <Button block loading={phase === 'publishing'} disabled={busy || phase === 'publishing'} onClick={requestPublish}>
             {phase === 'publishing' ? 'Creating Google Form…' : publication?.status === 'FAILED' ? 'Retry Create GForm' : 'Create GForm'}
           </Button>
           <p className={styles.hint}>Creates a real Google Form from version {draft.currentVersion.versionNumber} in your Google account.</p>

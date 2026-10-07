@@ -3,7 +3,7 @@ import type { AIConversationContext } from '../../../domain/interfaces/ai-provid
 import type { TextMatcher } from './text-matcher.js';
 
 const PUBLISH =
-  /\b(publish|upload|push|export)\b|\b(create|make|build|generate|put|turn|convert|send)\s+(it|this|that|the (form|draft))\s+(in|on|to|into|as)\s+(a\s+)?(real\s+)?(google forms?|g ?forms?)\b|\b(create|make)\s+(the\s+)?(actual|real)\s+(google\s+)?form\b/i;
+  /\b(publish|upload|push|export)\b|\b(create|make|build|generate|put|turn|convert|send)\s+(it|this|that|the (form|draft))\s+(in|on|to|into|as)\s+(a\s+)?(real\s+)?(google forms?|g ?forms?)\b|\b(create|make)\s+(the\s+)?(actual|real)\s+(google\s+)?form\b|\b(create|make|generate|build)\s+(the|my|this)\s+(g-?form|google form)\b|^(please\s+)?(create|make|generate|build)\s+(g-?form|google form)[\s.!]*$|\b(make|take)\s+(it|this|the form)\s+live\b|\bgo live\b/i;
 const SUGGEST =
   /\bwhat (else|other|more)\b|\bsuggest(ions?)?\b|\b(ideas?|recommend\w*)\b.*\bquestions?\b|\b(give|show|get)\s+me\s+(some\s+|more\s+|other\s+|different\s+|new\s+)?(questions|ideas|suggestions|ones)\b|\b(different|other|more|new) (ones|suggestions)\b|\bwhat (questions|should i ask|can i ask|could i ask)\b/i;
 const ACCEPT_VERBS = /\b(add|use|include|take|keep|accept|go with|put in|insert)\b/i;

@@ -62,12 +62,20 @@ export interface CreateConversationRequest {
 
 export type MessageRole = 'USER' | 'ASSISTANT';
 
+export interface PublishedFormView {
+  title: string;
+  versionNumber: number;
+  responderUrl: string;
+  editUrl: string;
+}
+
 export interface MessageView {
   id: string;
   conversationId: string;
   role: MessageRole;
   content: string;
   intent: ChatIntent | null;
+  publishedForm: PublishedFormView | null;
   createdAt: string;
 }
 
@@ -148,4 +156,5 @@ export interface PublishRequest {
 
 export interface PublishResult {
   publication: PublicationView;
+  message: MessageView | null;
 }

@@ -1,4 +1,4 @@
-import type { FormVersionSummary, FormVersionView } from '@forms-ai/contracts';
+import type { FormVersionSummary, FormVersionView, PublishResult } from '@forms-ai/contracts';
 import { useEffect, useState } from 'react';
 import type { DraftWorkspace } from '../../hooks/use-draft-workspace';
 import { useGoogleConnection } from '../../hooks/use-google-connection';
@@ -20,10 +20,11 @@ interface ArtifactPanelProps {
   modal: boolean;
   conversationId: string | null;
   workspace: DraftWorkspace;
+  onPublished(result: PublishResult): void;
   onClose(): void;
 }
 
-export function ArtifactPanel({ open, modal, conversationId, workspace, onClose }: ArtifactPanelProps) {
+export function ArtifactPanel({ open, modal, conversationId, workspace, onPublished, onClose }: ArtifactPanelProps) {
   const { drafts } = useServices();
   const { notify } = useToast();
   const google = useGoogleConnection();
@@ -107,7 +108,7 @@ export function ArtifactPanel({ open, modal, conversationId, workspace, onClose 
             conversationId={conversationId}
             google={google}
             busy={saving || viewing !== null}
-            onPublication={workspace.recordPublication}
+            onPublished={onPublished}
             onStaleDraft={workspace.reload}
           />
         </footer>

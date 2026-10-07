@@ -88,6 +88,6 @@ export class GoogleIntegrationController {
 
   readonly publish = async (request: Request, response: Response): Promise<void> => {
     const body = this.validator.body(publishBodySchema, request.body);
-    response.json({ publication: await this.useCases.publish.execute(principalOf(response).userId, body) });
+    response.json(await this.useCases.publish.execute(principalOf(response).userId, body));
   };
 }

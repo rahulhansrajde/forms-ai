@@ -6,6 +6,7 @@ import type {
   GoogleConnectionView,
   MessageView,
   PublicationView,
+  PublishResult,
   SendMessageResult,
   UserView,
 } from '@forms-ai/contracts';
@@ -70,6 +71,7 @@ export function message(role: MessageView['role'], content: string, overrides: P
     role,
     content,
     intent: role === 'ASSISTANT' ? 'NORMAL_CHAT' : null,
+    publishedForm: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
@@ -103,6 +105,19 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
     editUrl: 'https://docs.google.com/forms/d/x/edit',
     updatedAt: '2026-01-01T00:00:00.000Z',
   };
+  const publishResult: PublishResult = {
+    publication,
+    message: message('ASSISTANT', 'Google Form created successfully. Your form is ready.', {
+      id: 'publication-message-1',
+      intent: null,
+      publishedForm: {
+        title: 'College Hackathon Registration',
+        versionNumber: 1,
+        responderUrl: 'https://docs.google.com/forms/d/e/x/viewform',
+        editUrl: 'https://docs.google.com/forms/d/x/edit',
+      },
+    }),
+  };
 
   const spies = {
     currentUser: vi.spyOn(auth, 'currentUser').mockImplementation(async () => {
@@ -123,9 +138,9 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
     versions: vi.spyOn(drafts, 'versions').mockResolvedValue({ items: [], nextCursor: null }),
     applyOperations: vi.spyOn(drafts, 'applyOperations').mockResolvedValue(draftView()),
     googleStatus: vi.spyOn(google, 'status').mockResolvedValue(connection),
-    publish: vi.spyOn(google, 'publish').mockResolvedValue(publication),
+    publish: vi.spyOn(google, 'publish').mockResolvedValue(publishResult),
   };
 
   const services: FormsAIServices = { api, auth, conversations, drafts, google };
-  return { services, spies, fixtures: { conversation, detail, sendResult, publication } };
+  return { services, spies, fixtures: { conversation, detail, sendResult, publication, publishResult } };
 }

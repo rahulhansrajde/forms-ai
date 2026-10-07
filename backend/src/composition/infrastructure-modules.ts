@@ -1,5 +1,5 @@
 import type { AIProvider } from '../domain/interfaces/ai-provider.js';
-import type { GoogleFormsGateway, OAuthGateway } from '../domain/interfaces/google.js';
+import type { GoogleFormsGateway, OAuthGateway, PublishedFormVerifier } from '../domain/interfaces/google.js';
 import type { Clock, IdentifierGenerator, Logger } from '../domain/interfaces/system.js';
 import { AIProviderFactory } from '../infrastructure/ai/ai-provider-factory.js';
 import type { AppConfig } from '../infrastructure/configuration/app-config.js';
@@ -14,7 +14,9 @@ import { PostgresPublishJobRepository } from '../infrastructure/database/reposit
 import { PostgresSessionRepository } from '../infrastructure/database/repositories/postgres-session-repository.js';
 import { PostgresSuggestionSetRepository } from '../infrastructure/database/repositories/postgres-suggestion-set-repository.js';
 import { PostgresUserRepository } from '../infrastructure/database/repositories/postgres-user-repository.js';
+import { GoogleFormItemNormalizer } from '../infrastructure/google/google-form-item-normalizer.js';
 import { GoogleFormRequestBuilder } from '../infrastructure/google/google-form-request-builder.js';
+import { GoogleFormSnapshotVerifier } from '../infrastructure/google/google-form-snapshot-verifier.js';
 import { GoogleFormsApiGateway } from '../infrastructure/google/google-forms-api-gateway.js';
 import { GoogleOAuthHttpGateway } from '../infrastructure/google/google-oauth-http-gateway.js';
 import { FetchHttpClient } from '../infrastructure/http/http-client.js';
@@ -47,6 +49,7 @@ export class InfrastructureModules {
   readonly aiProvider: AIProvider;
   readonly oauthGateway: OAuthGateway;
   readonly formsGateway: GoogleFormsGateway;
+  readonly formVerifier: PublishedFormVerifier;
 
   constructor(
     config: AppConfig,
@@ -71,6 +74,9 @@ export class InfrastructureModules {
     const http = new FetchHttpClient();
     this.aiProvider = overrides.aiProvider ?? new AIProviderFactory(logger).create(config.ai);
     this.oauthGateway = overrides.oauthGateway ?? new GoogleOAuthHttpGateway(config.google, http, logger);
-    this.formsGateway = overrides.formsGateway ?? new GoogleFormsApiGateway(http, new GoogleFormRequestBuilder(), logger);
+    const formRequests = new GoogleFormRequestBuilder();
+    const formItems = new GoogleFormItemNormalizer();
+    this.formsGateway = overrides.formsGateway ?? new GoogleFormsApiGateway(http, formRequests, formItems, logger);
+    this.formVerifier = new GoogleFormSnapshotVerifier(formRequests, formItems);
   }
 }

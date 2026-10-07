@@ -51,6 +51,11 @@ describe('RuleBasedIntentClassifier', () => {
     ['Create a better version with fewer questions.', context({ form: true }), 'REGENERATE_FORM'],
     ['Create it in Google Forms.', context({ form: true }), 'CREATE_GOOGLE_FORM'],
     ['Publish this please', context({ form: true }), 'CREATE_GOOGLE_FORM'],
+    ['create gform', context({ form: true }), 'CREATE_GOOGLE_FORM'],
+    ['create the gform', context({ form: true }), 'CREATE_GOOGLE_FORM'],
+    ['Create the Google Form', context({ form: true }), 'CREATE_GOOGLE_FORM'],
+    ['make it live', context({ form: true }), 'CREATE_GOOGLE_FORM'],
+    ['Create a Google Form for our hackathon registration', context(), 'CREATE_FORM'],
   ])('classifies "%s"', (message, conversation, expected) => {
     expect(classifier.classify(message, conversation).intent).toBe(expected);
   });

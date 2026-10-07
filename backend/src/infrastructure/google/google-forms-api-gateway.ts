@@ -1,9 +1,10 @@
 import type { FormSchema } from '@forms-ai/contracts';
 import { z } from 'zod';
-import type { GoogleFormLinks, GoogleFormsGateway } from '../../domain/interfaces/google.js';
+import type { GoogleFormSnapshot, GoogleFormsGateway } from '../../domain/interfaces/google.js';
 import type { Logger } from '../../domain/interfaces/system.js';
 import { GoogleFormsError, GoogleOAuthError } from '../../shared/errors/application-errors.js';
 import type { HttpClient, HttpResponse } from '../http/http-client.js';
+import type { GoogleFormItemNormalizer } from './google-form-item-normalizer.js';
 import type { GoogleFormRequestBuilder } from './google-form-request-builder.js';
 
 const FORMS_API = 'https://forms.googleapis.com/v1/forms';
@@ -12,6 +13,7 @@ const createdFormSchema = z.object({ formId: z.string().min(1) });
 
 const formDocumentSchema = z.object({
   formId: z.string().min(1),
+  info: z.object({ title: z.string().optional(), description: z.string().optional() }).optional(),
   responderUri: z.url().optional(),
   items: z.array(z.unknown()).default([]),
 });
@@ -20,6 +22,7 @@ export class GoogleFormsApiGateway implements GoogleFormsGateway {
   constructor(
     private readonly http: HttpClient,
     private readonly requests: GoogleFormRequestBuilder,
+    private readonly normalizer: GoogleFormItemNormalizer,
     private readonly logger: Logger,
   ) {}
 
@@ -52,11 +55,17 @@ export class GoogleFormsApiGateway implements GoogleFormsGateway {
     );
   }
 
-  async fetchLinks(accessToken: string, formId: string): Promise<GoogleFormLinks> {
+  async readForm(accessToken: string, formId: string): Promise<GoogleFormSnapshot> {
     const form = await this.fetchForm(accessToken, formId);
     return {
-      responderUrl: form.responderUri ?? `https://docs.google.com/forms/d/${encodeURIComponent(formId)}/viewform`,
-      editUrl: `https://docs.google.com/forms/d/${encodeURIComponent(formId)}/edit`,
+      formId: form.formId,
+      title: (form.info?.title ?? '').trim(),
+      description: (form.info?.description ?? '').trim(),
+      links: {
+        responderUrl: form.responderUri ?? `https://docs.google.com/forms/d/${encodeURIComponent(formId)}/viewform`,
+        editUrl: `https://docs.google.com/forms/d/${encodeURIComponent(formId)}/edit`,
+      },
+      items: form.items.map((item) => this.normalizer.normalize(item)),
     };
   }
 

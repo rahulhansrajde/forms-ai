@@ -36,6 +36,14 @@ export function toMessageView(message: Message): MessageView {
     role: message.role,
     content: message.content,
     intent: message.intent,
+    publishedForm: message.publishedForm
+      ? {
+          title: message.publishedForm.title,
+          versionNumber: message.publishedForm.versionNumber,
+          responderUrl: message.publishedForm.responderUrl,
+          editUrl: message.publishedForm.editUrl,
+        }
+      : null,
     createdAt: message.createdAt.toISOString(),
   };
 }

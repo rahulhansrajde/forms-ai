@@ -1,7 +1,9 @@
-import type { DraftView } from '@forms-ai/contracts';
+import { randomUUID } from 'node:crypto';
+import type { DraftView, MessageView } from '@forms-ai/contracts';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { GoogleOAuthError } from '../../src/shared/errors/application-errors.js';
+import { technovaVersion1, technovaVersion2, technovaVersion3 } from '../support/technova-hackathon.js';
 import {
   createTestApplication,
   FRONTEND_ORIGIN,
@@ -225,6 +227,122 @@ describe('Google OAuth and Google Forms publishing', () => {
     } finally {
       application.oauth.refreshFailure = null;
     }
+  });
+
+  async function seedTechnovaDraft(signedIn: SignedInUser): Promise<{ conversationId: string; draftId: string; versionIds: string[] }> {
+    const conversationId = await startConversation(signedIn);
+    const database = application.container.database;
+    const draftId = randomUUID();
+    await database.query(
+      "INSERT INTO form_drafts (id, user_id, conversation_id, title, status) VALUES ($1, $2, $3, 'TechNova Hackathon 2026', 'DRAFT')",
+      [draftId, signedIn.user.id, conversationId],
+    );
+    const versionIds: string[] = [];
+    for (const [index, schema] of [technovaVersion1, technovaVersion2, technovaVersion3].entries()) {
+      const versionId = randomUUID();
+      versionIds.push(versionId);
+      await database.query(
+        "INSERT INTO form_versions (id, draft_id, version_number, schema, source, created_at) VALUES ($1, $2, $3, $4, 'MANUAL', $5)",
+        [versionId, draftId, index + 1, JSON.stringify(schema), new Date(Date.now() + index * 1000)],
+      );
+    }
+    await database.query('UPDATE form_drafts SET current_version_id = $2 WHERE id = $1', [draftId, versionIds[2]]);
+    return { conversationId, draftId, versionIds };
+  }
+
+  async function publicationMessages(signedIn: SignedInUser, conversationId: string): Promise<MessageView[]> {
+    const page = await signedIn.agent.get(`/conversations/${conversationId}/messages`).expect(200);
+    return (page.body.items as MessageView[]).filter((message) => message.publishedForm !== null);
+  }
+
+  it('publishes exactly version 3 with all 3 sections and 17 questions and announces it in chat', async () => {
+    const signedIn = await signUpUser(application);
+    await connectGoogle(signedIn);
+    const { conversationId, draftId, versionIds } = await seedTechnovaDraft(signedIn);
+    const draft = (await signedIn.agent.get(`/drafts/${draftId}`).expect(200)).body.draft as DraftView;
+    expect(draft.currentVersion).toMatchObject({ id: versionIds[2], versionNumber: 3, schema: technovaVersion3 });
+    const createdBefore = application.forms.createdForms.length;
+
+    const response = await signedIn.agent.post('/google-forms/publish').send({ draftId, versionId: versionIds[2] }).expect(200);
+
+    expect(response.body.publication).toMatchObject({ status: 'SUCCEEDED', currentStep: 'COMPLETED', versionId: versionIds[2] });
+    const published = application.forms.populatedSchemas.at(-1)?.schema;
+    expect(published).toEqual(technovaVersion3);
+    expect(published?.sections.map((section) => section.questions.length)).toEqual([7, 4, 6]);
+    expect(response.body.message).toMatchObject({
+      role: 'ASSISTANT',
+      content: 'Google Form created successfully. Your form is ready.',
+      publishedForm: {
+        title: 'TechNova Hackathon 2026',
+        versionNumber: 3,
+        responderUrl: response.body.publication.responderUrl,
+        editUrl: response.body.publication.editUrl,
+      },
+    });
+
+    const versions = await application.container.database.query<{ id: string; schema: unknown }>(
+      'SELECT id, schema FROM form_versions WHERE draft_id = $1 ORDER BY version_number',
+      [draftId],
+    );
+    expect(versions.map((version) => version.schema)).toEqual([technovaVersion1, technovaVersion2, technovaVersion3]);
+
+    const persisted = await publicationMessages(signedIn, conversationId);
+    expect(persisted).toEqual([response.body.message]);
+
+    const again = await signedIn.agent.post('/google-forms/publish').send({ draftId, versionId: versionIds[2] }).expect(200);
+    expect(again.body.publication.googleFormId).toBe(response.body.publication.googleFormId);
+    expect(again.body.message).toBeNull();
+    expect(application.forms.createdForms).toHaveLength(createdBefore + 1);
+    expect(await publicationMessages(signedIn, conversationId)).toHaveLength(1);
+
+    const chat = await sendChat(signedIn, conversationId, 'create the gform');
+    expect(chat.assistantMessage.intent).toBe('CREATE_GOOGLE_FORM');
+    expect(application.forms.createdForms).toHaveLength(createdBefore + 1);
+  });
+
+  it('treats a Google Form missing later sections as a failed publication and resumes the same form on retry', async () => {
+    const signedIn = await signUpUser(application);
+    await connectGoogle(signedIn);
+    const { conversationId, draftId, versionIds } = await seedTechnovaDraft(signedIn);
+    const createdBefore = application.forms.createdForms.length;
+    application.forms.storeOnly = (schema) => ({ ...schema, sections: schema.sections.slice(0, 1) });
+
+    try {
+      const failed = await signedIn.agent.post('/google-forms/publish').send({ draftId, versionId: versionIds[2] }).expect(502);
+      expect(failed.body.error.code).toBe('PUBLISH_FAILED');
+      expect(failed.body.error.message).toContain('expected 3 sections and 17 questions, found 1 sections and 7 questions');
+      expect(failed.body.error.details.publication).toMatchObject({
+        status: 'FAILED',
+        currentStep: 'VERIFY_FORM',
+        responderUrl: null,
+        editUrl: null,
+      });
+      expect(failed.body.error.details.message).toMatchObject({ role: 'ASSISTANT', publishedForm: null });
+      expect(failed.body.error.details.message.content).toContain('could not be created');
+    } finally {
+      application.forms.storeOnly = null;
+    }
+
+    expect(await publicationMessages(signedIn, conversationId)).toEqual([]);
+    const afterFailure = (await signedIn.agent.get(`/drafts/${draftId}`).expect(200)).body.draft as DraftView;
+    expect(afterFailure).toMatchObject({ status: 'DRAFT', currentVersion: { id: versionIds[2], schema: technovaVersion3 } });
+    const pending = await application.container.database.query<{ status: string }>('SELECT status FROM created_forms WHERE draft_id = $1', [draftId]);
+    expect(pending).toEqual([{ status: 'CREATING' }]);
+
+    const retried = await signedIn.agent.post('/google-forms/publish').send({ draftId, versionId: versionIds[2] }).expect(200);
+    expect(retried.body.publication).toMatchObject({ status: 'SUCCEEDED', googleFormId: application.forms.createdForms.at(-1)?.formId });
+    expect(application.forms.createdForms).toHaveLength(createdBefore + 1);
+    expect(await publicationMessages(signedIn, conversationId)).toHaveLength(1);
+  });
+
+  it('never shows another user the publication result', async () => {
+    const owner = await signUpUser(application);
+    await connectGoogle(owner);
+    const { conversationId, draftId, versionIds } = await seedTechnovaDraft(owner);
+    await owner.agent.post('/google-forms/publish').send({ draftId, versionId: versionIds[2] }).expect(200);
+    const stranger = await signUpUser(application);
+    await stranger.agent.get(`/conversations/${conversationId}/messages`).expect(404);
+    await stranger.agent.post('/google-forms/publish').send({ draftId, versionId: versionIds[2] }).expect(404);
   });
 
   it('refuses to publish a version that is no longer current', async () => {

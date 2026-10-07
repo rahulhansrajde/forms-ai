@@ -115,7 +115,7 @@ describe('chat workspace', () => {
     expect(spies.publish).not.toHaveBeenCalled();
   });
 
-  it('publishes only after explicit confirmation and shows the form links', async () => {
+  it('publishes only after explicit confirmation and shows the result in chat, not in the preview', async () => {
     const { services, spies } = createFakeServices();
     spies.googleStatus.mockResolvedValue({ connected: true, email: 'ada@gmail.com', connectedAt: '2026-01-01T00:00:00.000Z' });
     renderApp(services, '/chat');
@@ -130,9 +130,29 @@ describe('chat workspace', () => {
     expect(spies.publish).not.toHaveBeenCalled();
     await user.click(within(dialog).getByRole('button', { name: 'Create GForm' }));
     expect(spies.publish).toHaveBeenCalledWith('draft-1', 'version-1');
-    expect(await within(panel).findByText('Google Form created successfully')).toBeInTheDocument();
-    expect(within(panel).getByRole('link', { name: 'Open form' })).toHaveAttribute('href', 'https://docs.google.com/forms/d/e/x/viewform');
-    expect(within(panel).getByRole('link', { name: 'Open editor' })).toHaveAttribute('href', 'https://docs.google.com/forms/d/x/edit');
+    const log = screen.getByRole('log', { name: 'Conversation' });
+    const result = await within(log).findByRole('region', { name: 'Google Form created' });
+    expect(result).toHaveTextContent('Google Form created successfully. Your form is ready.');
+    expect(within(result).getByRole('link', { name: 'Open form' })).toHaveAttribute('href', 'https://docs.google.com/forms/d/e/x/viewform');
+    expect(within(result).getByRole('link', { name: 'Open form' })).toHaveAttribute('target', '_blank');
+    expect(within(result).getByRole('link', { name: 'Open editor' })).toHaveAttribute('href', 'https://docs.google.com/forms/d/x/edit');
+    expect(within(result).getByRole('img', { name: /QR code that opens the form/ })).toBeInTheDocument();
+    expect(within(result).getByText('Scan to open the form.')).toBeInTheDocument();
+    expect(within(panel).queryByText(/created successfully/)).not.toBeInTheDocument();
+    expect(within(panel).queryByRole('link', { name: 'Open form' })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole('link', { name: 'Open editor' })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole('img', { name: /QR code/ })).not.toBeInTheDocument();
+    expect(within(panel).getByLabelText('Form title')).toHaveValue('College Hackathon Registration');
+  });
+
+  it('renders a persisted publication result when the conversation is reopened', async () => {
+    const { services, spies, fixtures } = createFakeServices();
+    spies.getConversation.mockResolvedValue({ ...fixtures.detail, id: 'conversation-1', activeDraftId: 'draft-1' });
+    spies.messages.mockResolvedValue({ items: [message('USER', 'Create a hackathon form'), fixtures.publishResult.message!], nextCursor: null });
+    renderApp(services, '/chat/conversation-1');
+    const result = await screen.findByRole('region', { name: 'Google Form created' });
+    expect(within(result).getByRole('link', { name: 'Open form' })).toHaveAttribute('href', 'https://docs.google.com/forms/d/e/x/viewform');
+    expect(within(result).getByRole('img', { name: /QR code/ })).toBeInTheDocument();
   });
 
   it('keeps the draft and allows retry when publishing fails', async () => {
@@ -141,6 +161,7 @@ describe('chat workspace', () => {
     spies.publish.mockRejectedValueOnce(
       new ApiError(502, 'PUBLISH_FAILED', 'Google Forms could not add items. Please try again.', {
         publication: { ...fixtures.publication, status: 'FAILED', currentStep: 'ADD_ITEMS', error: 'Google Forms could not add items.', responderUrl: null, editUrl: null },
+        message: message('ASSISTANT', 'The Google Form for version 1 could not be created. Google Forms could not add items.', { id: 'failure-1', intent: null }),
       }),
     );
     renderApp(services, '/chat');
@@ -153,9 +174,13 @@ describe('chat workspace', () => {
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Create GForm' }));
     expect(await within(panel).findByRole('alert')).toHaveTextContent('could not add items');
     expect(within(panel).getByLabelText('Form title')).toHaveValue('College Hackathon Registration');
+    const log = screen.getByRole('log', { name: 'Conversation' });
+    expect(within(log).getByText(/could not be created/)).toBeInTheDocument();
+    expect(within(log).queryByRole('region', { name: 'Google Form created' })).not.toBeInTheDocument();
     await user.click(within(panel).getByRole('button', { name: 'Retry Create GForm' }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Create GForm' }));
-    expect(await within(panel).findByText('Google Form created successfully')).toBeInTheDocument();
+    expect(await within(log).findByRole('region', { name: 'Google Form created' })).toBeInTheDocument();
+    expect(within(panel).queryByRole('link', { name: 'Open form' })).not.toBeInTheDocument();
   });
 
   it('loads only the selected conversation and older messages on demand', async () => {
