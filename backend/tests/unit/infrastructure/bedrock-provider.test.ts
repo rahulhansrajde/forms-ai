@@ -1,26 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { GeminiAIProvider } from '../../../src/infrastructure/ai/gemini/gemini-ai-provider.js';
-import { GeminiClient } from '../../../src/infrastructure/ai/gemini/gemini-client.js';
-import { GeminiSchemaAdapter } from '../../../src/infrastructure/ai/gemini/gemini-schema-adapter.js';
-import { ModelFallbackInvoker } from '../../../src/infrastructure/ai/gemini/model-fallback-invoker.js';
+import { BedrockAIProvider } from '../../../src/infrastructure/ai/bedrock/bedrock-ai-provider.js';
+import { BedrockClient } from '../../../src/infrastructure/ai/bedrock/bedrock-client.js';
+import { BedrockSchemaAdapter } from '../../../src/infrastructure/ai/bedrock/bedrock-schema-adapter.js';
+import { ModelFallbackInvoker } from '../../../src/infrastructure/ai/bedrock/model-fallback-invoker.js';
 import { AIPromptLibrary } from '../../../src/infrastructure/ai/prompts/ai-prompt-library.js';
 import { STRUCTURED_OUTPUTS } from '../../../src/infrastructure/ai/prompts/structured-outputs.js';
 import type { HttpClient, HttpRequest, HttpResponse } from '../../../src/infrastructure/http/http-client.js';
 import { AIProviderError } from '../../../src/shared/errors/application-errors.js';
 import { SilentLogger } from '../../support/fakes.js';
 
-const MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'];
+const MODELS = ['zai.glm-5', 'backup.model-a', 'backup.model-b', 'backup.model-c'];
 const context = { recentTurns: [], currentForm: null, openSuggestions: [] };
 
-function text(value: string, extraParts: Array<Record<string, unknown>> = []): HttpResponse {
-  return { status: 200, body: { candidates: [{ content: { parts: [...extraParts, { text: value }] }, finishReason: 'STOP' }] } };
+function text(value: string | null, finishReason = 'stop'): HttpResponse {
+  return { status: 200, body: { choices: [{ index: 0, message: { role: 'assistant', content: value }, finish_reason: finishReason }] } };
 }
 
-function failure(status: number, reason: string, message = 'failure'): HttpResponse {
-  return { status, body: { error: { code: status, status: reason, message } } };
+function failure(status: number, code: string, message = 'failure'): HttpResponse {
+  return { status, body: { error: { code, message, param: null, type: 'invalid_request_error' } } };
 }
 
-class ScriptedGeminiHttp implements HttpClient {
+class ScriptedBedrockHttp implements HttpClient {
   readonly requests: HttpRequest[] = [];
 
   constructor(private readonly responses: Array<HttpResponse | Error>) {}
@@ -38,39 +38,49 @@ class ScriptedGeminiHttp implements HttpClient {
   }
 
   modelsCalled(): string[] {
-    return this.requests.map((request) => decodeURIComponent(/models\/([^:]+):/.exec(request.url)?.[1] ?? ''));
+    return this.requests.map((request) => (JSON.parse(request.body ?? '{}') as { model: string }).model);
   }
 }
 
-function provider(http: ScriptedGeminiHttp, logger = new SilentLogger(), now: () => number = Date.now) {
-  return new GeminiAIProvider(
-    new GeminiClient(http, 'test-key'),
+function provider(http: ScriptedBedrockHttp, logger = new SilentLogger(), now: () => number = Date.now) {
+  return new BedrockAIProvider(
+    new BedrockClient(http, 'test-key', 'ap-south-1'),
     new ModelFallbackInvoker(MODELS, logger, now),
-    new GeminiSchemaAdapter(),
+    new BedrockSchemaAdapter(),
     new AIPromptLibrary(),
   );
 }
 
-describe('GeminiAIProvider', () => {
-  it('requests structured JSON with the API key in a header, never in the URL', async () => {
-    const http = new ScriptedGeminiHttp([text('{"intent":"CREATE_FORM"}')]);
+describe('BedrockAIProvider', () => {
+  it('requests structured JSON from the regional endpoint with the API key as a bearer token, never in the URL', async () => {
+    const http = new ScriptedBedrockHttp([text('{"intent":"CREATE_FORM"}')]);
     expect(await provider(http).classifyIntent('Create a form', context)).toEqual({ intent: 'CREATE_FORM' });
     const request = http.requests[0]!;
-    expect(request.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent');
+    expect(request.url).toBe('https://bedrock-mantle.ap-south-1.api.aws/v1/chat/completions');
     expect(request.url).not.toContain('test-key');
-    expect(request.headers?.['x-goog-api-key']).toBe('test-key');
+    expect(request.headers?.Authorization).toBe('Bearer test-key');
     const body = JSON.parse(request.body ?? '{}');
-    expect(body.generationConfig.responseMimeType).toBe('application/json');
-    expect(body.generationConfig.responseJsonSchema.properties.intent.enum).toContain('MODIFY_FORM');
-    expect(body.systemInstruction.parts[0].text).toContain('Create GForm');
+    expect(body.model).toBe('zai.glm-5');
+    expect(body.response_format.type).toBe('json_schema');
+    expect(body.response_format.json_schema.name).toBe('intent_classification');
+    expect(body.response_format.json_schema.schema.properties.intent.enum).toContain('MODIFY_FORM');
+    expect(body.messages[0]).toMatchObject({ role: 'system' });
+    expect(body.messages[0].content).toContain('Create GForm');
+    expect(body.messages[1]).toMatchObject({ role: 'user' });
+  });
+
+  it('sends plain replies without a response format', async () => {
+    const http = new ScriptedBedrockHttp([text('Hello there')]);
+    expect(await provider(http).reply('hi', context)).toBe('Hello there');
+    expect(JSON.parse(http.requests[0]!.body ?? '{}').response_format).toBeUndefined();
   });
 
   it('falls back through the configured models when a model is unavailable or overloaded', async () => {
     const logger = new SilentLogger();
-    const http = new ScriptedGeminiHttp([
-      failure(404, 'NOT_FOUND', 'models/gemini-3.8-flash is not found'),
-      failure(503, 'UNAVAILABLE'),
-      failure(429, 'RESOURCE_EXHAUSTED'),
+    const http = new ScriptedBedrockHttp([
+      failure(404, 'not_found_error', "The model 'zai.glm-5' does not exist"),
+      failure(503, 'service_unavailable'),
+      failure(429, 'rate_limit_exceeded'),
       text('Hello there'),
     ]);
     expect(await provider(http, logger).reply('hi', context)).toBe('Hello there');
@@ -79,55 +89,55 @@ describe('GeminiAIProvider', () => {
   });
 
   it('skips a model that recently reported itself unavailable', async () => {
-    const http = new ScriptedGeminiHttp([failure(404, 'NOT_FOUND'), text('first'), text('second')]);
-    const gemini = provider(http);
-    await gemini.reply('hi', context);
-    await gemini.reply('again', context);
-    expect(http.modelsCalled()).toEqual(['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.7-flash']);
+    const http = new ScriptedBedrockHttp([failure(404, 'not_found_error'), text('first'), text('second')]);
+    const bedrock = provider(http);
+    await bedrock.reply('hi', context);
+    await bedrock.reply('again', context);
+    expect(http.modelsCalled()).toEqual(['zai.glm-5', 'backup.model-a', 'backup.model-a']);
   });
 
   it('retries the next model after network failures and empty responses', async () => {
-    const http = new ScriptedGeminiHttp([new Error('socket hang up'), { status: 200, body: { candidates: [] } }, text('ok')]);
+    const http = new ScriptedBedrockHttp([new Error('socket hang up'), text(null, 'length'), text('ok')]);
     expect(await provider(http).reply('hi', context)).toBe('ok');
     expect(http.modelsCalled()).toHaveLength(3);
   });
 
   it('stops immediately on permanent configuration errors such as an invalid key', async () => {
     const logger = new SilentLogger();
-    const http = new ScriptedGeminiHttp([failure(400, 'INVALID_ARGUMENT', 'API key not valid. Please pass a valid API key.')]);
+    const http = new ScriptedBedrockHttp([failure(401, 'invalid_api_key', 'Invalid bearer token')]);
     await expect(provider(http, logger).reply('hi', context)).rejects.toBeInstanceOf(AIProviderError);
     expect(http.requests).toHaveLength(1);
-    expect(logger.entries).toContainEqual({ level: 'error', message: 'Gemini rejected the request' });
-    const forbidden = new ScriptedGeminiHttp([failure(403, 'PERMISSION_DENIED')]);
+    expect(logger.entries).toContainEqual({ level: 'error', message: 'Bedrock rejected the request' });
+    const forbidden = new ScriptedBedrockHttp([failure(403, 'access_denied')]);
     await expect(provider(forbidden).reply('hi', context)).rejects.toBeInstanceOf(AIProviderError);
     expect(forbidden.requests).toHaveLength(1);
   });
 
   it('reports an outage when every model fails', async () => {
-    const http = new ScriptedGeminiHttp(MODELS.map(() => failure(503, 'UNAVAILABLE')));
+    const http = new ScriptedBedrockHttp(MODELS.map(() => failure(503, 'service_unavailable')));
     await expect(provider(http).reply('hi', context)).rejects.toThrow('The AI service is unavailable right now.');
   });
 
-  it('ignores thought parts and fenced JSON', async () => {
-    const http = new ScriptedGeminiHttp([text('```json\n{"acceptedIds":["suggestion_1"]}\n```', [{ text: 'thinking…', thought: true }])]);
+  it('accepts fenced JSON', async () => {
+    const http = new ScriptedBedrockHttp([text('```json\n{"acceptedIds":["suggestion_1"]}\n```')]);
     expect(await provider(http).selectSuggestions('add 1', [])).toEqual({ acceptedIds: ['suggestion_1'] });
   });
 
   it('returns unparseable output untouched so the application validator rejects it', async () => {
-    const http = new ScriptedGeminiHttp([text('Sure! Here is your form: ...')]);
+    const http = new ScriptedBedrockHttp([text('Sure! Here is your form: ...')]);
     expect(await provider(http).generateForm({ instruction: 'x', basis: null, context })).toBe('Sure! Here is your form: ...');
   });
 
-  it('treats blocked prompts as permanent', async () => {
-    const http = new ScriptedGeminiHttp([{ status: 200, body: { candidates: [], promptFeedback: { blockReason: 'SAFETY' } } }]);
+  it('treats content-filtered responses as permanent', async () => {
+    const http = new ScriptedBedrockHttp([text(null, 'content_filter')]);
     await expect(provider(http).reply('x', context)).rejects.toBeInstanceOf(AIProviderError);
     expect(http.requests).toHaveLength(1);
   });
 });
 
-describe('GeminiSchemaAdapter', () => {
+describe('BedrockSchemaAdapter', () => {
   it('converts every structured output into the supported schema subset', () => {
-    const adapter = new GeminiSchemaAdapter();
+    const adapter = new BedrockSchemaAdapter();
     const allowed = new Set(['type', 'properties', 'required', 'items', 'enum', 'anyOf', 'description']);
     const visit = (node: unknown): void => {
       if (Array.isArray(node)) {

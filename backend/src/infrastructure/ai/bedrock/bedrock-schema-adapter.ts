@@ -1,6 +1,6 @@
 const STRUCTURAL_KEYWORDS = new Set(['type', 'properties', 'required', 'items', 'enum', 'anyOf', 'description']);
 
-export class GeminiSchemaAdapter {
+export class BedrockSchemaAdapter {
   adapt(schema: Record<string, unknown>): Record<string, unknown> {
     return this.adaptNode(schema) as Record<string, unknown>;
   }

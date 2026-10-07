@@ -2,10 +2,10 @@ import type { AIProvider } from '../../domain/interfaces/ai-provider.js';
 import type { Logger } from '../../domain/interfaces/system.js';
 import type { AppConfig } from '../configuration/app-config.js';
 import { FetchHttpClient } from '../http/http-client.js';
-import { GeminiAIProvider } from './gemini/gemini-ai-provider.js';
-import { GeminiClient } from './gemini/gemini-client.js';
-import { GeminiSchemaAdapter } from './gemini/gemini-schema-adapter.js';
-import { ModelFallbackInvoker } from './gemini/model-fallback-invoker.js';
+import { BedrockAIProvider } from './bedrock/bedrock-ai-provider.js';
+import { BedrockClient } from './bedrock/bedrock-client.js';
+import { BedrockSchemaAdapter } from './bedrock/bedrock-schema-adapter.js';
+import { ModelFallbackInvoker } from './bedrock/model-fallback-invoker.js';
 import { AIPromptLibrary } from './prompts/ai-prompt-library.js';
 import { QuestionPhraseParser } from './rule-based/question-phrase-parser.js';
 import { RuleBasedAIProvider } from './rule-based/rule-based-ai-provider.js';
@@ -17,14 +17,14 @@ import { RuleBasedSuggestionAdvisor } from './rule-based/rule-based-suggestion-a
 import { TextMatcher } from './rule-based/text-matcher.js';
 import { TopicResolver } from './rule-based/topic-resolver.js';
 
-const GEMINI_TIMEOUT_MS = 90_000;
+const BEDROCK_TIMEOUT_MS = 90_000;
 
 export class AIProviderFactory {
   constructor(private readonly logger: Logger) {}
 
   create(settings: AppConfig['ai']): AIProvider {
-    if (settings.provider === 'gemini') {
-      return this.createGemini(settings);
+    if (settings.provider === 'bedrock') {
+      return this.createBedrock(settings);
     }
     return this.createRuleBased();
   }
@@ -42,14 +42,14 @@ export class AIProviderFactory {
     );
   }
 
-  private createGemini(settings: AppConfig['ai']): AIProvider {
-    if (settings.geminiApiKey.length === 0) {
-      throw new Error('AI_PROVIDER is gemini but GEMINI_API_KEY is not set.');
+  private createBedrock(settings: AppConfig['ai']): AIProvider {
+    if (settings.bedrockApiKey.length === 0) {
+      throw new Error('AI_PROVIDER is bedrock but BEDROCK_API_KEY is not set.');
     }
-    return new GeminiAIProvider(
-      new GeminiClient(new FetchHttpClient(GEMINI_TIMEOUT_MS), settings.geminiApiKey),
-      new ModelFallbackInvoker(settings.geminiModels, this.logger),
-      new GeminiSchemaAdapter(),
+    return new BedrockAIProvider(
+      new BedrockClient(new FetchHttpClient(BEDROCK_TIMEOUT_MS), settings.bedrockApiKey, settings.bedrockRegion),
+      new ModelFallbackInvoker(settings.bedrockModels, this.logger),
+      new BedrockSchemaAdapter(),
       new AIPromptLibrary(),
     );
   }

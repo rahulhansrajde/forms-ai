@@ -1,6 +1,6 @@
 import type { Logger } from '../../../domain/interfaces/system.js';
 import { AIProviderError } from '../../../shared/errors/application-errors.js';
-import { GeminiRequestError } from './gemini-client.js';
+import { BedrockRequestError } from './bedrock-client.js';
 
 const UNAVAILABLE_MODEL_COOLDOWN_MS = 10 * 60 * 1000;
 
@@ -13,7 +13,7 @@ export class ModelFallbackInvoker {
     private readonly now: () => number = Date.now,
   ) {
     if (models.length === 0) {
-      throw new Error('At least one Gemini model must be configured.');
+      throw new Error('At least one Bedrock model must be configured.');
     }
   }
 
@@ -22,7 +22,7 @@ export class ModelFallbackInvoker {
       try {
         return await attempt(model);
       } catch (error) {
-        if (!(error instanceof GeminiRequestError)) {
+        if (!(error instanceof BedrockRequestError)) {
           throw error;
         }
         this.recordFailure(operation, model, error);
@@ -31,16 +31,16 @@ export class ModelFallbackInvoker {
     throw new AIProviderError('The AI service is unavailable right now.');
   }
 
-  private recordFailure(operation: string, model: string, error: GeminiRequestError): void {
+  private recordFailure(operation: string, model: string, error: BedrockRequestError): void {
     const diagnostics = { operation, model, status: error.status, reason: error.reason };
     if (error.kind === 'permanent') {
-      this.logger.error('Gemini rejected the request', diagnostics);
+      this.logger.error('Bedrock rejected the request', diagnostics);
       throw new AIProviderError('The AI service rejected the request.', undefined, { cause: error });
     }
     if (error.kind === 'model-unavailable') {
       this.unavailableUntil.set(model, this.now() + UNAVAILABLE_MODEL_COOLDOWN_MS);
     }
-    this.logger.warn('Gemini model failed, trying the next model', { ...diagnostics, kind: error.kind });
+    this.logger.warn('Bedrock model failed, trying the next model', { ...diagnostics, kind: error.kind });
   }
 
   private candidates(): string[] {

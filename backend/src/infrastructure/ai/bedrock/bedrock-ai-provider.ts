@@ -8,13 +8,14 @@ import type {
 } from '../../../domain/interfaces/ai-provider.js';
 import type { AIPromptLibrary } from '../prompts/ai-prompt-library.js';
 import { STRUCTURED_OUTPUTS, type StructuredOutput } from '../prompts/structured-outputs.js';
-import type { GeminiClient } from './gemini-client.js';
-import type { GeminiSchemaAdapter } from './gemini-schema-adapter.js';
+import type { BedrockClient } from './bedrock-client.js';
+import type { BedrockSchemaAdapter } from './bedrock-schema-adapter.js';
 import type { ModelFallbackInvoker } from './model-fallback-invoker.js';
 
 const STRUCTURED_MAX_TOKENS = 16384;
 const REPLY_MAX_TOKENS = 4096;
 const CODE_FENCE = /^```(?:json)?\s*|\s*```$/g;
+const SCHEMA_NAME_SEPARATOR = /[^A-Za-z0-9_-]+/g;
 
 interface StructuredCall {
   output: StructuredOutput;
@@ -22,11 +23,11 @@ interface StructuredCall {
   prompt: string;
 }
 
-export class GeminiAIProvider implements AIProvider {
+export class BedrockAIProvider implements AIProvider {
   constructor(
-    private readonly client: GeminiClient,
+    private readonly client: BedrockClient,
     private readonly fallback: ModelFallbackInvoker,
-    private readonly schemas: GeminiSchemaAdapter,
+    private readonly schemas: BedrockSchemaAdapter,
     private readonly prompts: AIPromptLibrary,
   ) {}
 
@@ -87,7 +88,10 @@ export class GeminiAIProvider implements AIProvider {
       this.client.generate(model, {
         system: call.system,
         prompt: call.prompt,
-        responseSchema: this.schemas.adapt(call.output.jsonSchema),
+        responseFormat: {
+          name: call.output.name.replace(SCHEMA_NAME_SEPARATOR, '_'),
+          schema: this.schemas.adapt(call.output.jsonSchema),
+        },
         maxOutputTokens: STRUCTURED_MAX_TOKENS,
       }),
     );

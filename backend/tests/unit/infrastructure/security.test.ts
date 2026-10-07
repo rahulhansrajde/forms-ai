@@ -46,14 +46,19 @@ describe('ConfigurationLoader', () => {
     expect(new ConfigurationLoader().load({ DATABASE_URL: 'x', TOKEN_ENCRYPTION_KEY: 'k', NODE_ENV: 'production' }).secureCookies).toBe(true);
   });
 
-  it('selects Gemini with the configured fallback order when a key is present', () => {
-    const config = new ConfigurationLoader().load({ DATABASE_URL: 'x', TOKEN_ENCRYPTION_KEY: 'k', GEMINI_API_KEY: 'placeholder' });
-    expect(config.ai).toMatchObject({
-      provider: 'gemini',
-      geminiModels: ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'],
+  it('selects Bedrock with the default region and model when a key is present', () => {
+    const config = new ConfigurationLoader().load({ DATABASE_URL: 'x', TOKEN_ENCRYPTION_KEY: 'k', BEDROCK_API_KEY: 'placeholder' });
+    expect(config.ai).toMatchObject({ provider: 'bedrock', bedrockRegion: 'ap-south-1', bedrockModels: ['zai.glm-5'] });
+    const custom = new ConfigurationLoader().load({
+      DATABASE_URL: 'x',
+      TOKEN_ENCRYPTION_KEY: 'k',
+      BEDROCK_REGION: 'us-east-1',
+      BEDROCK_MODELS: ' a , b ,',
     });
-    const custom = new ConfigurationLoader().load({ DATABASE_URL: 'x', TOKEN_ENCRYPTION_KEY: 'k', GEMINI_MODELS: ' a , b ,' });
-    expect(custom.ai.geminiModels).toEqual(['a', 'b']);
+    expect(custom.ai).toMatchObject({ provider: 'rule-based', bedrockRegion: 'us-east-1', bedrockModels: ['a', 'b'] });
+    expect(() => new ConfigurationLoader().load({ DATABASE_URL: 'x', TOKEN_ENCRYPTION_KEY: 'k', BEDROCK_REGION: 'evil.example.com/x' })).toThrow(
+      'BEDROCK_REGION',
+    );
   });
 });
 

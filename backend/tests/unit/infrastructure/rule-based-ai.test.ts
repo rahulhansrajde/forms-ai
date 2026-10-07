@@ -156,11 +156,12 @@ describe('TopicResolver', () => {
 });
 
 describe('AIProviderFactory', () => {
-  it('uses the offline provider unless Gemini is configured', () => {
+  it('uses the offline provider unless Bedrock is configured', () => {
     const factory = new AIProviderFactory(new SilentLogger());
-    expect(factory.create({ provider: 'rule-based', geminiApiKey: '', geminiModels: ['m'] }).constructor.name).toBe('RuleBasedAIProvider');
-    expect(() => factory.create({ provider: 'gemini', geminiApiKey: '', geminiModels: ['m'] })).toThrow('GEMINI_API_KEY');
-    expect(factory.create({ provider: 'gemini', geminiApiKey: 'placeholder', geminiModels: ['m'] }).constructor.name).toBe('GeminiAIProvider');
+    const settings = { bedrockRegion: 'ap-south-1', bedrockModels: ['m'] };
+    expect(factory.create({ ...settings, provider: 'rule-based', bedrockApiKey: '' }).constructor.name).toBe('RuleBasedAIProvider');
+    expect(() => factory.create({ ...settings, provider: 'bedrock', bedrockApiKey: '' })).toThrow('BEDROCK_API_KEY');
+    expect(factory.create({ ...settings, provider: 'bedrock', bedrockApiKey: 'placeholder' }).constructor.name).toBe('BedrockAIProvider');
   });
 
   it('produces forms the domain accepts', async () => {

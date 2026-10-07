@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-const DEFAULT_GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'] as const;
+const DEFAULT_BEDROCK_REGION = 'ap-south-1';
+const DEFAULT_BEDROCK_MODELS = ['zai.glm-5'] as const;
 
 const booleanFlag = z
   .enum(['true', 'false'])
@@ -19,14 +20,18 @@ const environmentSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_REDIRECT_URI: z.url().default('http://localhost:5000/auth/google/callback'),
-  AI_PROVIDER: z.enum(['gemini', 'rule-based']).optional(),
-  GEMINI_API_KEY: z.string().default(''),
-  GEMINI_MODELS: z.string().default(DEFAULT_GEMINI_MODELS.join(',')),
+  AI_PROVIDER: z.enum(['bedrock', 'rule-based']).optional(),
+  BEDROCK_API_KEY: z.string().default(''),
+  BEDROCK_REGION: z
+    .string()
+    .regex(/^[a-z]{2}(?:-[a-z]+)+-\d$/, 'BEDROCK_REGION must be an AWS region such as ap-south-1.')
+    .default(DEFAULT_BEDROCK_REGION),
+  BEDROCK_MODELS: z.string().default(DEFAULT_BEDROCK_MODELS.join(',')),
   FRONTEND_DIST_DIRECTORY: z.string().default(''),
   TRUST_PROXY: booleanFlag,
 });
 
-export type AIProviderKind = 'gemini' | 'rule-based';
+export type AIProviderKind = 'bedrock' | 'rule-based';
 
 export interface AppConfig {
   environment: 'development' | 'test' | 'production';
@@ -36,7 +41,7 @@ export interface AppConfig {
   sessionTtlMs: number;
   tokenEncryptionKey: string;
   google: { clientId: string; clientSecret: string; redirectUri: string; configured: boolean };
-  ai: { provider: AIProviderKind; geminiApiKey: string; geminiModels: string[] };
+  ai: { provider: AIProviderKind; bedrockApiKey: string; bedrockRegion: string; bedrockModels: string[] };
   frontendDistDirectory: string | null;
   trustProxy: boolean;
   secureCookies: boolean;
@@ -64,9 +69,10 @@ export class ConfigurationLoader {
         configured: values.GOOGLE_CLIENT_ID.length > 0 && values.GOOGLE_CLIENT_SECRET.length > 0,
       },
       ai: {
-        provider: values.AI_PROVIDER ?? (values.GEMINI_API_KEY.length > 0 ? 'gemini' : 'rule-based'),
-        geminiApiKey: values.GEMINI_API_KEY,
-        geminiModels: values.GEMINI_MODELS.split(',')
+        provider: values.AI_PROVIDER ?? (values.BEDROCK_API_KEY.length > 0 ? 'bedrock' : 'rule-based'),
+        bedrockApiKey: values.BEDROCK_API_KEY,
+        bedrockRegion: values.BEDROCK_REGION,
+        bedrockModels: values.BEDROCK_MODELS.split(',')
           .map((model) => model.trim())
           .filter((model) => model.length > 0),
       },
