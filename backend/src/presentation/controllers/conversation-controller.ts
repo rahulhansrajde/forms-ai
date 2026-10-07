@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { SendChatMessageUseCase } from '../../application/use-cases/chat/send-chat-message-use-case.js';
 import type {
   CreateConversationUseCase,
+  DeleteConversationUseCase,
   GetConversationMessagesUseCase,
   GetConversationUseCase,
   ListConversationsUseCase,
@@ -20,6 +21,7 @@ export interface ConversationUseCases {
   create: CreateConversationUseCase;
   list: ListConversationsUseCase;
   get: GetConversationUseCase;
+  delete: DeleteConversationUseCase;
   messages: GetConversationMessagesUseCase;
   sendMessage: SendChatMessageUseCase;
 }
@@ -46,6 +48,12 @@ export class ConversationController {
   readonly get = async (request: Request, response: Response): Promise<void> => {
     const { conversationId } = this.validator.params(conversationParamsSchema, request.params);
     response.json({ conversation: await this.useCases.get.execute(principalOf(response).userId, conversationId) });
+  };
+
+  readonly delete = async (request: Request, response: Response): Promise<void> => {
+    const { conversationId } = this.validator.params(conversationParamsSchema, request.params);
+    await this.useCases.delete.execute(principalOf(response).userId, conversationId);
+    response.status(204).end();
   };
 
   readonly messages = async (request: Request, response: Response): Promise<void> => {

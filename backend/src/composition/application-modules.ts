@@ -53,6 +53,7 @@ import {
 import { SendChatMessageUseCase } from '../application/use-cases/chat/send-chat-message-use-case.js';
 import {
   CreateConversationUseCase,
+  DeleteConversationUseCase,
   GetConversationMessagesUseCase,
   GetConversationUseCase,
   ListConversationsUseCase,
@@ -169,6 +170,7 @@ export class ApplicationModules {
       create: new CreateConversationUseCase(conversations, titles, identifiers, clock),
       list: new ListConversationsUseCase(conversations, cursors),
       get: new GetConversationUseCase(this.conversationAccess, drafts),
+      delete: new DeleteConversationUseCase(this.conversationAccess, conversations),
       messages: new GetConversationMessagesUseCase(this.conversationAccess, messages, cursors),
       sendMessage: this.createSendChatMessageUseCase(titles),
     };

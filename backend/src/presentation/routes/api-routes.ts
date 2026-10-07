@@ -37,6 +37,7 @@ export function conversationRoutes(
   router.post('/conversations', controller.create);
   router.get('/conversations', controller.list);
   router.get('/conversations/:conversationId', controller.get);
+  router.delete('/conversations/:conversationId', controller.delete);
   router.get('/conversations/:conversationId/messages', controller.messages);
   router.post('/conversations/:conversationId/messages', limits.chat, controller.sendMessage);
   return router;

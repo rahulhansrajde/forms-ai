@@ -1,0 +1,53 @@
+.toggle {
+  position: relative;
+  flex-shrink: 0;
+  width: 3.75rem;
+  height: 2.125rem;
+  padding: 0;
+  border: var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+  color: var(--color-text-subtle);
+  transition:
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard);
+}
+
+.toggle:hover {
+  border-color: var(--color-accent);
+}
+
+.toggle:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 0.55rem;
+}
+
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(2.125rem - 8px);
+  height: calc(2.125rem - 8px);
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--duration-slow) var(--ease-standard);
+}
+
+.toggle[aria-checked='true'] .knob {
+  transform: translateX(1.625rem);
+}

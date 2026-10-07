@@ -52,6 +52,17 @@
   animation: fade-in var(--duration-slow) var(--ease-standard) both;
 }
 
+:root[data-theme-transition='active'] *,
+:root[data-theme-transition='active'] *::before,
+:root[data-theme-transition='active'] *::after {
+  transition:
+    background-color var(--duration-theme) var(--ease-standard),
+    border-color var(--duration-theme) var(--ease-standard),
+    color var(--duration-theme) var(--ease-standard),
+    fill var(--duration-theme) var(--ease-standard),
+    box-shadow var(--duration-theme) var(--ease-standard) !important;
+}
+
 :root[data-motion='reduced'] *,
 :root[data-motion='reduced'] *::before,
 :root[data-motion='reduced'] *::after {

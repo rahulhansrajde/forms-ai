@@ -9,6 +9,7 @@ import { IconButton } from '../ui/icon-button';
 import { Logo } from '../ui/logo';
 import { Spinner } from '../ui/spinner';
 import { InlineError } from '../ui/states';
+import { DeletionCountdown } from './deletion-countdown';
 import styles from './history-sidebar.module.css';
 
 interface HistorySidebarProps {
@@ -21,9 +22,17 @@ interface HistorySidebarProps {
 }
 
 export function HistorySidebar({ open, modal, activeConversationId, onClose, onNewChat, onNavigate }: HistorySidebarProps) {
-  const { conversations, status, hasMore, ensureLoaded, loadMore } = useConversationList();
+  const { conversations, status, hasMore, deletions, ensureLoaded, loadMore } = useConversationList();
   const sentinelRef = useRef<HTMLLIElement>(null);
+  const restoredFocusId = useRef<string | null>(null);
   const groups = useMemo(() => groupConversations(conversations, new Date()), [conversations]);
+
+  useEffect(() => {
+    if (restoredFocusId.current) {
+      document.getElementById(`delete-chat-${restoredFocusId.current}`)?.focus();
+      restoredFocusId.current = null;
+    }
+  });
 
   useEffect(() => {
     if (open) {
@@ -59,19 +68,45 @@ export function HistorySidebar({ open, modal, activeConversationId, onClose, onN
           <section key={group.label} className={styles.group} aria-label={group.label}>
             <h2 className={styles.groupLabel}>{group.label}</h2>
             <ul className={styles.list}>
-              {group.conversations.map((conversation) => (
-                <li key={conversation.id}>
-                  <NavLink
-                    to={`/chat/${conversation.id}`}
-                    className={styles.item}
-                    aria-current={conversation.id === activeConversationId ? 'page' : undefined}
-                    onClick={onNavigate}
-                  >
-                    <span className={styles.itemTitle}>{conversation.title}</span>
-                    <span className={styles.itemTime}>{formatConversationTime(conversation.updatedAt, new Date())}</span>
-                  </NavLink>
-                </li>
-              ))}
+              {group.conversations.map((conversation) => {
+                const deletion = deletions.pending.get(conversation.id);
+                return (
+                  <li key={conversation.id} className={styles.entry}>
+                    {deletion ? (
+                      <DeletionCountdown
+                        title={conversation.title}
+                        deletion={deletion}
+                        onUndo={() => {
+                          restoredFocusId.current = conversation.id;
+                          deletions.undo(conversation.id);
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <NavLink
+                          to={`/chat/${conversation.id}`}
+                          className={styles.item}
+                          aria-current={conversation.id === activeConversationId ? 'page' : undefined}
+                          onClick={onNavigate}
+                        >
+                          <span className={styles.itemTitle}>{conversation.title}</span>
+                          <span className={styles.itemTime}>{formatConversationTime(conversation.updatedAt, new Date())}</span>
+                        </NavLink>
+                        <button
+                          id={`delete-chat-${conversation.id}`}
+                          type="button"
+                          className={styles.delete}
+                          aria-label={`Delete chat “${conversation.title}”`}
+                          title="Delete chat"
+                          onClick={() => deletions.schedule(conversation.id)}
+                        >
+                          <Icon name="trash" size={16} />
+                        </button>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ))}

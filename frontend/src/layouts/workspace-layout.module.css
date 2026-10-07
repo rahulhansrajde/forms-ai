@@ -2,7 +2,7 @@
   position: relative;
   height: 100dvh;
   overflow: hidden;
-  background: var(--paper);
+  background: var(--color-canvas);
 }
 
 .column {
@@ -31,7 +31,7 @@
   height: var(--header-height);
   padding: 0 var(--space-md);
   border-bottom: var(--border);
-  background: var(--paper);
+  background: var(--color-canvas);
 }
 
 .headerStart,
@@ -40,6 +40,10 @@
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
+}
+
+.headerEnd {
+  gap: var(--space-md);
 }
 
 .toggle,
@@ -67,9 +71,14 @@
 .brand {
   display: inline-flex;
   align-items: center;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  transition: background-color var(--duration-base) var(--ease-standard);
 }
 
 .brand:hover {
+  background: var(--color-hover);
   text-decoration: none;
 }
 
@@ -88,5 +97,9 @@
 @media (max-width: 480px) {
   .header {
     padding: 0 var(--space-sm);
+  }
+
+  .headerEnd {
+    gap: var(--space-sm);
   }
 }

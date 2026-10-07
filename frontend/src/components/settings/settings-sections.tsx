@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useGoogleConnection } from '../../hooks/use-google-connection';
 import { useServices } from '../../state/services-context';
 import { usePreferences } from '../../state/preferences-context';
@@ -56,9 +55,7 @@ export function ProfileSection() {
 
 export function SecuritySection() {
   const { auth } = useServices();
-  const { logOut } = useSession();
   const { notify } = useToast();
-  const navigate = useNavigate();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -84,46 +81,26 @@ export function SecuritySection() {
     }
   };
 
-  const signOut = async () => {
-    try {
-      await logOut();
-      navigate('/login', { replace: true });
-    } catch (caught) {
-      notify(errorMessage(caught));
-    }
-  };
-
   return (
-    <div className={styles.stack}>
-      <form className={styles.section} onSubmit={changePassword} noValidate>
-        <h2 className={styles.heading}>Security</h2>
-        {error ? <InlineError message={error} /> : null}
-        <TextField label="Current password" type="password" autoComplete="current-password" value={form.currentPassword} onChange={(event) => update('currentPassword')(event.target.value)} />
-        <TextField
-          label="New password"
-          type="password"
-          autoComplete="new-password"
-          hint="At least 8 characters, including a letter and a number."
-          value={form.newPassword}
-          onChange={(event) => update('newPassword')(event.target.value)}
-        />
-        <TextField label="Confirm new password" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(event) => update('confirmPassword')(event.target.value)} />
-        <div className={styles.actions}>
-          <Button type="submit" loading={saving}>
-            Change password
-          </Button>
-        </div>
-      </form>
-      <div className={styles.section}>
-        <h3 className={styles.subheading}>Session</h3>
-        <p className={styles.muted}>Log out of Forms AI on this device.</p>
-        <div className={styles.actions}>
-          <Button variant="secondary" onClick={() => void signOut()}>
-            Log out
-          </Button>
-        </div>
+    <form className={styles.section} onSubmit={changePassword} noValidate>
+      <h2 className={styles.heading}>Security</h2>
+      {error ? <InlineError message={error} /> : null}
+      <TextField label="Current password" type="password" autoComplete="current-password" value={form.currentPassword} onChange={(event) => update('currentPassword')(event.target.value)} />
+      <TextField
+        label="New password"
+        type="password"
+        autoComplete="new-password"
+        hint="At least 8 characters, including a letter and a number."
+        value={form.newPassword}
+        onChange={(event) => update('newPassword')(event.target.value)}
+      />
+      <TextField label="Confirm new password" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(event) => update('confirmPassword')(event.target.value)} />
+      <div className={styles.actions}>
+        <Button type="submit" loading={saving}>
+          Change password
+        </Button>
       </div>
-    </div>
+    </form>
   );
 }
 
@@ -200,18 +177,20 @@ export function PreferencesSection() {
   return (
     <div className={styles.section}>
       <h2 className={styles.heading}>Application preferences</h2>
-      <Switch
-        label="Send with Enter"
-        description="When off, press Control+Enter to send and Enter for a new line."
-        checked={sendWithEnter}
-        onChange={(checked) => update({ sendWithEnter: checked })}
-      />
-      <Switch
-        label="Reduce motion"
-        description="Minimise animations across Forms AI."
-        checked={reduceMotion}
-        onChange={(checked) => update({ reduceMotion: checked })}
-      />
+      <div className={styles.toggleList}>
+        <Switch
+          label="Send with Enter"
+          description="When off, press Control+Enter to send and Enter for a new line."
+          checked={sendWithEnter}
+          onChange={(checked) => update({ sendWithEnter: checked })}
+        />
+        <Switch
+          label="Reduce motion"
+          description="Minimise animations across Forms AI."
+          checked={reduceMotion}
+          onChange={(checked) => update({ reduceMotion: checked })}
+        />
+      </div>
     </div>
   );
 }

@@ -61,6 +61,10 @@ export class ConversationService {
     return (await this.api.get<{ conversation: ConversationDetail }>(`/conversations/${conversationId}`)).conversation;
   }
 
+  async delete(conversationId: string): Promise<void> {
+    await this.api.delete<void>(`/conversations/${conversationId}`);
+  }
+
   messages(conversationId: string, cursor: string | null): Promise<CursorPage<MessageView>> {
     return this.api.get(`/conversations/${conversationId}/messages`, { cursor });
   }

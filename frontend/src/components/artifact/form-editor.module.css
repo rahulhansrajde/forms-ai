@@ -8,8 +8,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  padding-bottom: var(--space-lg);
-  border-bottom: var(--border);
+  padding: var(--space-md);
+  border: var(--border);
+  border-top: 4px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .formTitle {
@@ -23,7 +27,8 @@
   align-items: flex-start;
   gap: var(--space-md);
   padding: var(--space-md);
-  border: var(--border);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
   animation: fade-in var(--duration-slow) var(--ease-standard) both;
 }
 
@@ -53,13 +58,15 @@
 }
 
 .sectionBadge {
-  padding: 0.2rem 0.5rem;
-  background: var(--ink);
-  color: var(--paper);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
   font-size: var(--text-label-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .questions {
@@ -69,23 +76,28 @@
 }
 
 .emptySection {
-  color: var(--ink-muted);
+  color: var(--color-text-muted);
   font-size: var(--text-body-sm);
 }
 
 .question {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 0.75rem;
   padding: var(--space-md);
   border: var(--border);
-  background: var(--paper);
-  transition: box-shadow var(--duration-base) var(--ease-standard);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
   animation: rise-in var(--duration-base) var(--ease-standard) both;
 }
 
 .question:focus-within {
-  box-shadow: var(--panel-glow);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
 }
 
 .questionMain {
@@ -99,8 +111,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.75rem;
-  height: 3rem;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  margin-top: 0.575rem;
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: var(--text-label-lg);
   font-weight: 700;
 }
 
@@ -114,8 +131,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding-top: var(--space-sm);
-  border-top: var(--border-hairline);
+  padding-top: 0.75rem;
+  border-top: var(--border);
 }
 
 .toolbar {
@@ -153,9 +170,10 @@
 }
 
 .optionMarker {
-  width: 0.9rem;
-  height: 0.9rem;
-  border: var(--border);
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 50%;
 }
 
 .scaleRange {

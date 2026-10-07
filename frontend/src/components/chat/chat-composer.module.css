@@ -3,25 +3,30 @@
   align-items: flex-end;
   gap: var(--space-sm);
   width: 100%;
-  padding: var(--space-sm);
-  border: var(--border);
-  background: var(--paper);
-  transition: box-shadow var(--duration-base) var(--ease-standard);
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border: var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
 }
 
 .composer:focus-within {
-  box-shadow: var(--focus-glow);
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring), var(--shadow-md);
 }
 
 .input {
   flex: 1 1 auto;
   min-height: 2.5rem;
   max-height: 220px;
-  padding: 0.55rem var(--space-sm);
+  padding: 0.55rem 0.25rem;
   border: 0;
   background: transparent;
   font-size: var(--text-body-md);
-  line-height: 1.5;
+  line-height: 1.55;
   resize: none;
   overflow-y: auto;
 }

@@ -10,6 +10,7 @@ import { ConversationListProvider } from '../state/conversation-list-context';
 import { PreferencesProvider } from '../state/preferences-context';
 import { ServicesProvider } from '../state/services-context';
 import { SessionProvider, useSession } from '../state/session-context';
+import { ThemeProvider } from '../state/theme-context';
 import { ToastProvider } from '../state/toast-context';
 import { RedirectAuthenticated, RequireAuthentication } from './route-guards';
 
@@ -64,15 +65,17 @@ export function App({ services }: { services: FormsAIServices }) {
     <ApplicationErrorBoundary>
       <ServicesProvider services={services}>
         <PreferencesProvider>
-          <ToastProvider>
-            <SessionProvider>
-              <UserScopedProviders>
-                <BrowserRouter>
-                  <AppRoutes />
-                </BrowserRouter>
-              </UserScopedProviders>
-            </SessionProvider>
-          </ToastProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <SessionProvider>
+                <UserScopedProviders>
+                  <BrowserRouter>
+                    <AppRoutes />
+                  </BrowserRouter>
+                </UserScopedProviders>
+              </SessionProvider>
+            </ToastProvider>
+          </ThemeProvider>
         </PreferencesProvider>
       </ServicesProvider>
     </ApplicationErrorBoundary>

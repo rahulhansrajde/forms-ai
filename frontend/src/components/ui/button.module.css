@@ -3,10 +3,11 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  border: var(--border);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.07em;
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
@@ -14,6 +15,7 @@
   transition:
     box-shadow var(--duration-base) var(--ease-standard),
     background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
     color var(--duration-base) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard);
 }
@@ -22,23 +24,28 @@
   text-decoration: none;
 }
 
+.button:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
 .button:active:not(:disabled) {
   transform: translateY(1px);
 }
 
 .button:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
 }
 
 .md {
   min-height: 3rem;
-  padding: var(--space-md) var(--space-lg);
+  padding: 0.95rem 1.5rem;
   font-size: var(--text-label-lg);
 }
 
 .sm {
-  min-height: 2.25rem;
-  padding: var(--space-sm) var(--space-md);
+  min-height: 2.375rem;
+  padding: 0.6rem 1rem;
   font-size: var(--text-label-md);
 }
 
@@ -46,36 +53,43 @@
   width: 100%;
 }
 
-.primary {
-  background: var(--ink);
-  color: var(--paper);
+@media (max-width: 480px) {
+  .button {
+    max-width: 100%;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+  }
 }
 
-.primary:hover:not(:disabled),
-.primary:focus-visible {
-  box-shadow: var(--button-ring);
-  outline: none;
+.primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .secondary {
-  background: var(--paper);
-  color: var(--ink);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
-.secondary:hover:not(:disabled),
-.secondary:focus-visible {
-  box-shadow: var(--focus-glow);
-  outline: none;
+.secondary:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 .ghost {
   background: transparent;
-  border-color: transparent;
-  color: var(--ink);
+  color: var(--color-text);
 }
 
-.ghost:hover:not(:disabled),
-.ghost:focus-visible {
-  border-color: var(--ink);
-  outline: none;
+.ghost:hover:not(:disabled) {
+  background: var(--color-hover);
 }

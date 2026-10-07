@@ -5,8 +5,11 @@
 }
 
 .failure {
-  padding: var(--space-sm) var(--space-md);
-  border: 2px solid var(--ink);
+  padding: 0.65rem var(--space-md);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
   font-size: var(--text-body-sm);
   font-weight: 700;
   animation: rise-in var(--duration-base) var(--ease-standard) both;
@@ -21,13 +24,13 @@
 }
 
 .hint {
-  color: var(--ink-muted);
+  color: var(--color-text-subtle);
   font-size: var(--text-label-md);
   text-align: center;
 }
 
 .modalNote {
   margin-top: var(--space-sm);
-  color: var(--ink-muted);
+  color: var(--color-text-subtle);
   font-size: var(--text-body-sm);
 }

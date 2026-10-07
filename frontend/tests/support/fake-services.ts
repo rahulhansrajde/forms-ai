@@ -132,6 +132,7 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
     createConversation: vi.spyOn(conversations, 'create').mockResolvedValue(conversation),
     listConversations: vi.spyOn(conversations, 'list').mockResolvedValue({ items: [], nextCursor: null }),
     getConversation: vi.spyOn(conversations, 'get').mockResolvedValue(detail),
+    deleteConversation: vi.spyOn(conversations, 'delete').mockResolvedValue(undefined),
     messages: vi.spyOn(conversations, 'messages').mockResolvedValue({ items: [], nextCursor: null }),
     send: vi.spyOn(conversations, 'send').mockResolvedValue(sendResult),
     getDraft: vi.spyOn(drafts, 'get').mockResolvedValue(draftView()),

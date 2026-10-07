@@ -16,15 +16,18 @@
   align-items: center;
   gap: var(--space-md);
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   padding: var(--space-xl);
   border: var(--border);
-  background: var(--paper);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
   text-align: center;
   animation: scale-in var(--duration-slow) var(--ease-standard) both;
 }
 
 .code {
+  color: var(--color-accent-text);
   font-size: var(--text-label-lg);
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -36,5 +39,5 @@
 }
 
 .description {
-  color: var(--ink-muted);
+  color: var(--color-text-muted);
 }

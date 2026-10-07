@@ -8,14 +8,23 @@
   overflow: hidden;
 }
 
+.themeControl {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 2;
+}
+
 .card {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   padding: var(--space-xl);
   border: var(--border);
-  background: var(--paper);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
   animation: scale-in var(--duration-slow) var(--ease-standard) both;
 }
 
@@ -36,12 +45,12 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 1.25rem;
 }
 
 .nameRow {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .nameRow > * {
@@ -51,19 +60,30 @@
 .switchLink {
   display: block;
   margin-top: var(--space-xs);
+  color: var(--color-accent-text);
+  font-weight: 700;
   text-align: center;
 }
 
 .notice {
-  padding: var(--space-sm) var(--space-md);
-  border: var(--border);
+  padding: 0.7rem var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
   font-size: var(--text-body-sm);
+  font-weight: 700;
   text-align: center;
 }
 
 @media (max-width: 480px) {
   .card {
     padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+  }
+
+  .themeControl {
+    top: var(--space-sm);
+    right: var(--space-sm);
   }
 }
 

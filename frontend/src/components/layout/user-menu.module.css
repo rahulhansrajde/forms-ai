@@ -2,12 +2,22 @@
   display: inline-flex;
   padding: 0;
   border: 0;
+  border-radius: 50%;
   background: transparent;
-  transition: box-shadow var(--duration-base) var(--ease-standard);
+  transition:
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
 }
 
-.trigger:hover,
+.trigger:hover {
+  box-shadow: 0 0 0 3px var(--color-accent-soft-hover);
+}
+
 .trigger:focus-visible {
-  box-shadow: var(--button-ring);
+  box-shadow: var(--focus-ring);
   outline: none;
+}
+
+.trigger:active {
+  transform: scale(0.96);
 }

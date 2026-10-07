@@ -1,6 +1,8 @@
 import type { ConversationSummary } from '@forms-ai/contracts';
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useConversationDeletions, type ConversationDeletions } from './conversation-deletions';
 import { useServices } from './services-context';
+import { useToast } from './toast-context';
 
 type ListStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -8,6 +10,7 @@ interface ConversationListContextValue {
   conversations: ConversationSummary[];
   status: ListStatus;
   hasMore: boolean;
+  deletions: ConversationDeletions;
   ensureLoaded(): void;
   loadMore(): void;
   upsert(conversation: ConversationSummary): void;
@@ -17,10 +20,15 @@ const ConversationListContext = createContext<ConversationListContextValue | nul
 
 export function ConversationListProvider({ children }: { children: ReactNode }) {
   const { conversations: service } = useServices();
+  const { notify } = useToast();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [status, setStatus] = useState<ListStatus>('idle');
   const [cursor, setCursor] = useState<string | null>(null);
   const inFlight = useRef(false);
+  const deletions = useConversationDeletions(service, {
+    onDeleted: (id) => setConversations((current) => current.filter((conversation) => conversation.id !== id)),
+    onFailed: () => notify('This chat could not be deleted. It is still in your history, so you can try again.'),
+  });
 
   const fetchPage = useCallback(
     (pageCursor: string | null) => {
@@ -61,8 +69,8 @@ export function ConversationListProvider({ children }: { children: ReactNode }) 
   }, []);
 
   const value = useMemo(
-    () => ({ conversations, status, hasMore: cursor !== null, ensureLoaded, loadMore, upsert }),
-    [conversations, status, cursor, ensureLoaded, loadMore, upsert],
+    () => ({ conversations, status, hasMore: cursor !== null, deletions, ensureLoaded, loadMore, upsert }),
+    [conversations, status, cursor, deletions, ensureLoaded, loadMore, upsert],
   );
   return <ConversationListContext.Provider value={value}>{children}</ConversationListContext.Provider>;
 }

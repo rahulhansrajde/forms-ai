@@ -33,6 +33,11 @@ export class PostgresConversationRepository implements ConversationRepository {
     ]);
   }
 
+  async deleteOwned(id: string, userId: string): Promise<boolean> {
+    const rows = await this.database.query<{ id: string }>('DELETE FROM conversations WHERE id = $1 AND user_id = $2 RETURNING id', [id, userId]);
+    return rows.length > 0;
+  }
+
   async findById(id: string): Promise<Conversation | null> {
     const rows = await this.database.query<ConversationRow>(
       `SELECT ${CONVERSATION_COLUMNS} FROM conversations WHERE id = $1`,

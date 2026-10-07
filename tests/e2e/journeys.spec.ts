@@ -199,3 +199,181 @@ test('login screen renders in the original visual language @responsive', async (
   expect(fontFamily).toContain('Comic Sans');
   await capture(page, `test-results/screens/login-${test.info().project.name}.png`);
 });
+
+async function horizontalOverflow(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const width = window.innerWidth;
+    const problems: string[] = [];
+    if (document.documentElement.scrollWidth > width) {
+      problems.push(`page is ${document.documentElement.scrollWidth - width}px wider than the viewport`);
+    }
+    for (const element of Array.from(document.querySelectorAll<HTMLElement>('body *'))) {
+      if (element.closest('[aria-hidden="true"], [inert]')) {
+        continue;
+      }
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      if (style.visibility === 'hidden' || style.display === 'none' || Number(style.opacity) === 0 || rect.width === 0 || rect.height === 0) {
+        continue;
+      }
+      if (rect.right <= width + 1 && rect.left >= -1) {
+        continue;
+      }
+      let contained = false;
+      for (let parent = element.parentElement; parent && !contained; parent = parent.parentElement) {
+        const parentRect = parent.getBoundingClientRect();
+        contained = getComputedStyle(parent).overflowX !== 'visible' && parentRect.right <= width + 1 && parentRect.left >= -1;
+      }
+      if (!contained) {
+        problems.push(`${element.tagName.toLowerCase()} "${(element.textContent ?? '').trim().slice(0, 40)}" spans ${Math.round(rect.left)}..${Math.round(rect.right)}`);
+      }
+    }
+    return problems.slice(0, 5);
+  });
+}
+
+async function expectToFit(page: Page, screen: string): Promise<void> {
+  await page.waitForTimeout(400);
+  expect(await horizontalOverflow(page), `${screen} at ${page.viewportSize()?.width}px`).toEqual([]);
+}
+
+test('a chat can be deleted with a five-second undo window and stays deleted', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signUp(page);
+  await sendMessage(page, 'Create a contact form.');
+  await page.goto('/chat');
+  await sendMessage(page, 'Create a feedback form for students.');
+  await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/);
+  await page.getByRole('switch', { name: 'Dark mode' }).click();
+  await page.getByRole('button', { name: 'Open sidebar' }).click();
+  const history = page.getByRole('navigation', { name: 'Previous conversations' });
+  const entries = history.getByRole('link');
+  await expect(entries).toHaveCount(2);
+  const openTitle = (await history.locator('[aria-current="page"] span').first().innerText()).trim();
+
+  await history.getByRole('listitem').filter({ hasText: openTitle }).hover();
+  await history.getByRole('button', { name: `Delete chat “${openTitle}”` }).click();
+  const undo = history.getByRole('button', { name: `Undo deleting “${openTitle}”` });
+  await expect(undo).toBeFocused();
+  await expect(history.getByText('5', { exact: true })).toBeVisible();
+  await expect(history.getByText('3', { exact: true })).toBeVisible({ timeout: 3_000 });
+  await undo.click();
+  await expect(entries).toHaveCount(2);
+  await page.waitForTimeout(5_500);
+  await page.reload();
+  await page.getByRole('button', { name: 'Open sidebar' }).click();
+  await expect(entries).toHaveCount(2);
+
+  await history.getByRole('listitem').filter({ hasText: openTitle }).hover();
+  await history.getByRole('button', { name: `Delete chat “${openTitle}”` }).click();
+  await expect(page.getByLabel('Message Forms AI')).toBeEnabled();
+  await expect(page.getByRole('heading', { name: 'Start a new chat' })).toBeAttached({ timeout: 9_000 });
+  await expect(page).toHaveURL(/\/chat$/);
+  await expect(entries).toHaveCount(1);
+  await page.reload();
+  await page.getByRole('button', { name: 'Open sidebar' }).click();
+  await expect(entries).toHaveCount(1);
+  await expect(history.getByText(openTitle)).toHaveCount(0);
+});
+
+test('every screen fits phone, tablet and desktop widths in both themes', async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await signUp(page);
+  await sendMessage(page, 'Create a volunteer sign up form for a weekend community garden clean-up with contact details and t-shirt size.');
+  const conversationUrl = page.url();
+  for (const theme of ['light', 'dark'] as const) {
+    await page.evaluate((value) => localStorage.setItem('forms-ai.theme', value), theme);
+    for (const width of [320, 375, 390, 430, 1440]) {
+      await page.setViewportSize({ width, height: width < 768 ? 800 : 900 });
+      await page.goto('/chat');
+      await expectToFit(page, `${theme} new chat`);
+      await page.goto(conversationUrl);
+      await expectToFit(page, `${theme} conversation`);
+      await page.getByRole('button', { name: 'Open sidebar' }).click();
+      await expectToFit(page, `${theme} chat history`);
+      await page.getByRole('button', { name: /^Delete chat/ }).first().click({ force: true });
+      await expectToFit(page, `${theme} delete countdown`);
+      await page.getByRole('button', { name: /^Undo deleting/ }).click();
+      await page.getByRole('button', { name: 'Close sidebar' }).click();
+      await openPreview(page);
+      await expectToFit(page, `${theme} preview`);
+      await page.getByRole('button', { name: 'Close preview' }).click();
+      await page.getByRole('button', { name: /Account menu/ }).click();
+      await expectToFit(page, `${theme} profile menu`);
+      await page.keyboard.press('Escape');
+      for (const section of ['Profile', 'Security', 'Google Forms', 'Preferences']) {
+        await page.goto('/settings');
+        await page.getByRole('tab', { name: section }).click();
+        await expectToFit(page, `${theme} settings ${section}`);
+      }
+    }
+  }
+  const auth = await page.context().browser()!.newPage();
+  for (const theme of ['light', 'dark'] as const) {
+    for (const width of [320, 375, 390, 430, 1440]) {
+      await auth.setViewportSize({ width, height: 800 });
+      await auth.goto('/login');
+      await auth.evaluate((value) => localStorage.setItem('forms-ai.theme', value), theme);
+      await auth.reload();
+      await expectToFit(auth, `${theme} login`);
+      await auth.goto('/signup');
+      await expectToFit(auth, `${theme} signup`);
+    }
+  }
+  await auth.close();
+});
+test('the new chat heading and composer are centred as one group below the header', async ({ page }) => {
+  await signUp(page);
+  for (const [width, height] of [
+    [1440, 900],
+    [1024, 768],
+    [768, 1024],
+    [390, 844],
+    [844, 390],
+    [320, 568],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/chat');
+    await page.waitForTimeout(500);
+    const layout = await page.evaluate(() => {
+      const box = (element: Element | null) => element!.getBoundingClientRect();
+      const main = box(document.querySelector('#workspace-main'));
+      const heading = document.querySelector('p[data-phase]')!;
+      const hero = box(heading.parentElement);
+      const phrase = box(heading);
+      const composer = box(document.querySelector('form:has(textarea)'));
+      const send = box(document.querySelector('form:has(textarea) button[type="submit"]'));
+      return { main, hero, phrase, composer, send };
+    });
+    const label = `${width}x${height}`;
+    const groupCentre = (layout.hero.top + layout.composer.bottom) / 2;
+    const areaCentre = (layout.main.top + layout.main.bottom) / 2;
+    expect(Math.abs(groupCentre - areaCentre), `${label} vertical centre`).toBeLessThanOrEqual(2);
+    const mainCentreX = (layout.main.left + layout.main.right) / 2;
+    expect(Math.abs((layout.phrase.left + layout.phrase.right) / 2 - mainCentreX), `${label} heading centre`).toBeLessThanOrEqual(2);
+    expect(Math.abs((layout.composer.left + layout.composer.right) / 2 - mainCentreX), `${label} composer centre`).toBeLessThanOrEqual(2);
+    expect(layout.hero.top, `${label} heading below header`).toBeGreaterThanOrEqual(layout.main.top);
+    expect(layout.send.right, `${label} send button inside composer`).toBeLessThanOrEqual(layout.composer.right);
+    expect(layout.composer.left, `${label} composer left padding`).toBeGreaterThanOrEqual(12);
+    await expectToFit(page, `new chat ${label}`);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/chat');
+  await sendMessage(page, 'Create a contact form.');
+  await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/);
+});
+
+test('security settings end with the password form and log out stays in the profile menu', async ({ page }) => {
+  await signUp(page);
+  await page.goto('/settings?section=security');
+  const panel = page.getByRole('tabpanel');
+  await expect(panel.getByRole('heading', { name: 'Security' })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Change password' })).toBeVisible();
+  await expect(panel.getByText('Session', { exact: true })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Log out' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0);
+  await page.getByRole('button', { name: /Account menu/ }).click();
+  await page.getByRole('menuitem', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+});

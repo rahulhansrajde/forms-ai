@@ -6,21 +6,24 @@ import { ConversationListProvider } from '../../src/state/conversation-list-cont
 import { PreferencesProvider } from '../../src/state/preferences-context';
 import { ServicesProvider } from '../../src/state/services-context';
 import { SessionProvider } from '../../src/state/session-context';
+import { ThemeProvider } from '../../src/state/theme-context';
 import { ToastProvider } from '../../src/state/toast-context';
 
 export function renderApp(services: FormsAIServices, path: string) {
   return render(
     <ServicesProvider services={services}>
       <PreferencesProvider>
-        <ToastProvider>
-          <SessionProvider>
-            <ConversationListProvider>
-              <MemoryRouter initialEntries={[path]}>
-                <AppRoutes />
-              </MemoryRouter>
-            </ConversationListProvider>
-          </SessionProvider>
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <SessionProvider>
+              <ConversationListProvider>
+                <MemoryRouter initialEntries={[path]}>
+                  <AppRoutes />
+                </MemoryRouter>
+              </ConversationListProvider>
+            </SessionProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </PreferencesProvider>
     </ServicesProvider>,
   );

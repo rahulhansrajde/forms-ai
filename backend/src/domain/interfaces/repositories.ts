@@ -37,6 +37,7 @@ export interface SessionRepository {
 export interface ConversationRepository {
   insert(conversation: Conversation): Promise<void>;
   update(conversation: Conversation): Promise<void>;
+  deleteOwned(id: string, userId: string): Promise<boolean>;
   findById(id: string): Promise<Conversation | null>;
   listByUser(userId: string, page: KeysetPageRequest): Promise<Conversation[]>;
 }

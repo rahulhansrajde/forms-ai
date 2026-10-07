@@ -1,0 +1,113 @@
+.row {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.65rem;
+  border: 1px dashed var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  animation: fade-in var(--duration-base) var(--ease-standard) both;
+}
+
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-danger);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.track,
+.progress {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.track {
+  stroke: var(--color-border-strong);
+}
+
+.progress {
+  stroke: var(--color-danger);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 200ms linear;
+}
+
+.seconds {
+  position: relative;
+  color: var(--color-danger);
+  font-size: var(--text-label-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.undo {
+  flex-shrink: 0;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-label-md);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    border-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.undo:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.undo:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.deleting {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-danger);
+  font-size: var(--text-label-md);
+  font-weight: 700;
+}
+
+@media (hover: none) {
+  .undo {
+    min-height: 2.5rem;
+    padding: 0.4rem 0.9rem;
+  }
+}

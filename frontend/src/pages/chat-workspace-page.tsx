@@ -45,6 +45,14 @@ export function ChatWorkspacePage() {
     }
   }
 
+  const openConversationDeleted = conversationId !== null && conversationList.deletions.deleted.has(conversationId);
+
+  useEffect(() => {
+    if (openConversationDeleted) {
+      navigate('/chat', { replace: true });
+    }
+  }, [navigate, openConversationDeleted]);
+
   useEffect(() => {
     if (!googleReturn) {
       return;

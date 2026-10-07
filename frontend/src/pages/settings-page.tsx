@@ -70,33 +70,35 @@ export function SettingsPage() {
       activeConversationId={null}
     >
       <div className={styles.page}>
-        <Button variant="secondary" size="sm" icon={<Icon name="chevronLeft" size={16} />} className={styles.back} onClick={goBack}>
-          Back
-        </Button>
-        <h1 className={styles.title}>Settings</h1>
-        <div className={styles.layout}>
-          <div className={styles.tabs} role="tablist" aria-label="Settings sections" aria-orientation="vertical" onKeyDown={handleTabKeys}>
-            {SECTIONS.map((section) => (
-              <button
-                key={section.id}
-                id={`settings-tab-${section.id}`}
-                type="button"
-                role="tab"
-                aria-selected={active === section.id}
-                aria-controls={`settings-panel-${section.id}`}
-                tabIndex={active === section.id ? 0 : -1}
-                className={styles.tab}
-                onClick={() => select(section.id)}
-              >
-                {section.label}
-              </button>
-            ))}
-          </div>
-          <div id={`settings-panel-${active}`} role="tabpanel" aria-labelledby={`settings-tab-${active}`} className={styles.panel} key={active}>
-            {active === 'profile' ? <ProfileSection /> : null}
-            {active === 'security' ? <SecuritySection /> : null}
-            {active === 'google' ? <GoogleSection /> : null}
-            {active === 'preferences' ? <PreferencesSection /> : null}
+        <div className={styles.content}>
+          <Button variant="secondary" size="sm" icon={<Icon name="chevronLeft" size={16} />} className={styles.back} onClick={goBack}>
+            Back
+          </Button>
+          <h1 className={styles.title}>Settings</h1>
+          <div className={styles.layout}>
+            <div className={styles.tabs} role="tablist" aria-label="Settings sections" aria-orientation="vertical" onKeyDown={handleTabKeys}>
+              {SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  id={`settings-tab-${section.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={active === section.id}
+                  aria-controls={`settings-panel-${section.id}`}
+                  tabIndex={active === section.id ? 0 : -1}
+                  className={styles.tab}
+                  onClick={() => select(section.id)}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </div>
+            <div id={`settings-panel-${active}`} role="tabpanel" aria-labelledby={`settings-tab-${active}`} className={styles.panel} key={active}>
+              {active === 'profile' ? <ProfileSection /> : null}
+              {active === 'security' ? <SecuritySection /> : null}
+              {active === 'google' ? <GoogleSection /> : null}
+              {active === 'preferences' ? <PreferencesSection /> : null}
+            </div>
           </div>
         </div>
       </div>

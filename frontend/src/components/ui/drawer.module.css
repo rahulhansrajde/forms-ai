@@ -5,7 +5,7 @@
   z-index: 30;
   display: flex;
   flex-direction: column;
-  background: var(--paper);
+  background: var(--color-surface);
   visibility: hidden;
   transition:
     transform var(--duration-slow) var(--ease-standard),
@@ -39,14 +39,14 @@
 }
 
 .modal.open {
-  box-shadow: var(--panel-glow);
+  box-shadow: var(--shadow-lg);
 }
 
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: 55;
-  background: var(--ink-scrim);
+  background: var(--color-scrim);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--duration-slow) var(--ease-standard);

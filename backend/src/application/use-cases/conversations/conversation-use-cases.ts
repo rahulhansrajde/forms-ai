@@ -6,6 +6,7 @@ import type {
   MessageRepository,
 } from '../../../domain/interfaces/repositories.js';
 import type { Clock, IdentifierGenerator } from '../../../domain/interfaces/system.js';
+import { NotFoundError } from '../../../shared/errors/application-errors.js';
 import { toConversationSummary, toMessageView } from '../../dto/view-mappers.js';
 import type { ConversationAccessService } from '../../services/access/resource-access-service.js';
 import type { ConversationTitlePolicy } from '../../services/chat/conversation-title-policy.js';
@@ -69,6 +70,20 @@ export class GetConversationUseCase {
       createdAt: conversation.createdAt.toISOString(),
       activeDraftId: activeDraft?.id ?? null,
     };
+  }
+}
+
+export class DeleteConversationUseCase {
+  constructor(
+    private readonly access: ConversationAccessService,
+    private readonly conversations: ConversationRepository,
+  ) {}
+
+  async execute(userId: string, conversationId: string): Promise<void> {
+    const conversation = await this.access.requireOwned(conversationId, userId);
+    if (!(await this.conversations.deleteOwned(conversation.id, userId))) {
+      throw new NotFoundError('Conversation');
+    }
   }
 }
 

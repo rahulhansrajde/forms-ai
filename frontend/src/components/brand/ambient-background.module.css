@@ -2,7 +2,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--ink);
+  background: var(--ambient-base);
 }
 
 .canvas {

@@ -1,19 +1,21 @@
 .hero {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  height: 7.5rem;
+  min-height: calc(var(--text-headline-lg) * 1.15 + 1.5rem);
   overflow: hidden;
 }
 
 .phrase {
-  color: var(--paper);
+  max-width: 100%;
+  color: var(--ambient-text);
   font-size: var(--text-headline-lg);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.03em;
   text-align: center;
   text-wrap: balance;
+  overflow-wrap: anywhere;
   transition:
     opacity var(--duration-slow) var(--ease-standard),
     transform var(--duration-slow) var(--ease-standard);
@@ -32,7 +34,7 @@
 
 @media (max-width: 600px) {
   .hero {
-    height: 6rem;
+    min-height: calc(var(--text-headline-lg-mobile) * 1.15 * 2 + 1rem);
   }
 
   .phrase {

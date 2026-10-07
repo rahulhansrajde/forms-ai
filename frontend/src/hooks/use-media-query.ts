@@ -17,6 +17,10 @@ export function useIsCompactLayout(): boolean {
   return useMediaQuery('(max-width: 1023px)');
 }
 
+export function usePrefersDarkScheme(): boolean {
+  return useMediaQuery('(prefers-color-scheme: dark)');
+}
+
 export function useReducedMotion(): boolean {
   const { reduceMotion } = usePreferences();
   const systemPrefersReduced = useMediaQuery('(prefers-reduced-motion: reduce)');

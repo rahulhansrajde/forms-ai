@@ -11,8 +11,9 @@
   height: 2.5rem;
   padding: 0;
   border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--ink);
+  color: var(--color-text-muted);
   transition:
     box-shadow var(--duration-base) var(--ease-standard),
     border-color var(--duration-base) var(--ease-standard),
@@ -26,50 +27,54 @@
 }
 
 .button:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
-.plain:hover:not(:disabled),
-.plain:focus-visible {
-  border-color: var(--ink);
+.button:focus-visible {
+  box-shadow: var(--focus-ring);
   outline: none;
+}
+
+.plain:hover:not(:disabled) {
+  background: var(--color-hover);
+  color: var(--color-text);
 }
 
 .outlined {
-  border-color: var(--ink);
-  background: var(--paper);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
-.outlined:hover:not(:disabled),
-.outlined:focus-visible {
-  box-shadow: var(--focus-glow);
-  outline: none;
+.outlined:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .solid {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--paper);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-sm);
 }
 
-.solid:hover:not(:disabled),
-.solid:focus-visible {
-  box-shadow: var(--button-ring);
-  outline: none;
+.solid:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .round {
   width: 2.25rem;
   height: 2.25rem;
-  border-color: var(--ink);
+  border-color: var(--color-border-strong);
   border-radius: 50%;
-  background: var(--paper);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
-.round:hover:not(:disabled),
-.round:focus-visible {
-  box-shadow: var(--focus-glow);
-  outline: none;
+.round:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .tooltip {
@@ -77,9 +82,11 @@
   top: calc(100% + 6px);
   left: 50%;
   z-index: 40;
-  padding: 0.3rem 0.55rem;
-  background: var(--ink);
-  color: var(--paper);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-xs);
+  background: var(--color-inverse);
+  color: var(--color-on-inverse);
+  box-shadow: var(--shadow-md);
   font-size: var(--text-label-md);
   white-space: nowrap;
   pointer-events: none;

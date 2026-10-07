@@ -10,7 +10,7 @@
 }
 
 .description {
-  color: var(--ink-muted);
+  color: var(--color-text-muted);
   white-space: pre-wrap;
 }
 
@@ -20,6 +20,8 @@
   gap: var(--space-sm);
   padding: var(--space-md);
   border: var(--border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 
 .sectionTitle {
@@ -40,7 +42,7 @@
   flex-direction: column;
   gap: 2px;
   padding: var(--space-sm) 0;
-  border-bottom: var(--border-hairline);
+  border-bottom: var(--border);
 }
 
 .question:last-child {
@@ -57,18 +59,23 @@
 }
 
 .required {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
   font-size: var(--text-label-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .meta {
-  color: var(--ink-muted);
+  color: var(--color-text-muted);
   font-size: var(--text-body-sm);
 }
 
 .options {
   margin: var(--space-xs) 0 0;
   padding-left: var(--space-lg);
+  color: var(--color-text-muted);
   font-size: var(--text-body-sm);
 }

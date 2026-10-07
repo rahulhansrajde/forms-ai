@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from '../../hooks/use-media-query';
+import { useTheme } from '../../state/theme-context';
 import styles from './ambient-background.module.css';
 
 const VERTEX_SHADER = `attribute vec2 a_position;
@@ -11,6 +12,8 @@ const FRAGMENT_SHADER = `#extension GL_OES_standard_derivatives : enable
 precision highp float;
 uniform float u_time;
 uniform vec2 u_resolution;
+uniform vec3 u_base;
+uniform vec3 u_glow;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -34,13 +37,22 @@ void main() {
   vec2 grid = abs(fract(p * 6.0 - 0.5) - 0.5) / fwidth(p * 6.0);
   float gridPattern = 1.0 - min(min(grid.x, grid.y), 1.0);
   float shade = value * 0.12 + glow * 0.35 + gridPattern * 0.03;
-  gl_FragColor = vec4(vec3(shade), 1.0);
+  gl_FragColor = vec4(mix(u_base, u_glow, clamp(shade * 4.0, 0.0, 1.0)), 1.0);
 }`;
+
+type Rgb = [number, number, number];
 
 interface ShaderProgram {
   gl: WebGLRenderingContext;
   timeLocation: WebGLUniformLocation | null;
   resolutionLocation: WebGLUniformLocation | null;
+  baseLocation: WebGLUniformLocation | null;
+  glowLocation: WebGLUniformLocation | null;
+}
+
+function readThemeColor(property: string, fallback: Rgb): Rgb {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(getComputedStyle(document.documentElement).getPropertyValue(property).trim());
+  return match ? [parseInt(match[1]!, 16) / 255, parseInt(match[2]!, 16) / 255, parseInt(match[3]!, 16) / 255] : fallback;
 }
 
 function compileShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader | null {
@@ -81,12 +93,15 @@ function createProgram(canvas: HTMLCanvasElement): ShaderProgram | null {
     gl,
     timeLocation: gl.getUniformLocation(program, 'u_time'),
     resolutionLocation: gl.getUniformLocation(program, 'u_resolution'),
+    baseLocation: gl.getUniformLocation(program, 'u_base'),
+    glowLocation: gl.getUniformLocation(program, 'u_glow'),
   };
 }
 
 export function AmbientBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reducedMotion = useReducedMotion();
+  const { theme } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -94,6 +109,8 @@ export function AmbientBackground() {
     if (!canvas || !shader) {
       return;
     }
+    shader.gl.uniform3fv(shader.baseLocation, readThemeColor('--ambient-base', [0.07, 0.07, 0.09]));
+    shader.gl.uniform3fv(shader.glowLocation, readThemeColor('--ambient-glow', [0.23, 0.19, 0.49]));
     let frame = 0;
     const draw = (milliseconds: number) => {
       const width = canvas.clientWidth || 1;
@@ -124,7 +141,7 @@ export function AmbientBackground() {
       window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, theme]);
 
   return (
     <div className={styles.background} aria-hidden="true">

@@ -4,6 +4,7 @@ import { UserMenu } from '../components/layout/user-menu';
 import { HistorySidebar } from '../components/sidebar/history-sidebar';
 import { IconButton } from '../components/ui/icon-button';
 import { Logo } from '../components/ui/logo';
+import { ThemeToggle } from '../components/ui/theme-toggle';
 import { useIsCompactLayout } from '../hooks/use-media-query';
 import styles from './workspace-layout.module.css';
 
@@ -63,6 +64,7 @@ export function WorkspaceLayout({
             </Link>
           </div>
           <div className={styles.headerEnd}>
+            <ThemeToggle />
             <UserMenu />
           </div>
         </header>
