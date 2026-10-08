@@ -11,7 +11,7 @@ import styles from './settings-page.module.css';
 const SECTIONS = [
   { id: 'profile', label: 'Profile' },
   { id: 'security', label: 'Security' },
-  { id: 'google', label: 'Google Forms' },
+  { id: 'google', label: 'Google' },
   { id: 'preferences', label: 'Preferences' },
 ] as const;
 

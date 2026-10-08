@@ -8,6 +8,9 @@ export class IntentStatePolicy {
     if ((decision.intent === 'MODIFY_FORM' || decision.intent === 'REGENERATE_FORM') && !context.draft) {
       return this.clarify(this.clarifications.noDraftToChange());
     }
+    if ((decision.intent === 'MODIFY_SHEET' || decision.intent === 'READ_SHEET') && !context.spreadsheet) {
+      return this.clarify(this.clarifications.noSpreadsheet());
+    }
     if (decision.intent === 'ACCEPT_SUGGESTIONS' && !context.openSuggestions) {
       return this.clarify(this.clarifications.noSuggestionsToAccept());
     }

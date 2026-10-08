@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import type { Express } from 'express';
 import type { AIProvider } from '../domain/interfaces/ai-provider.js';
 import type { GoogleFormsGateway, OAuthGateway } from '../domain/interfaces/google.js';
+import type { SheetsGateway } from '../domain/interfaces/sheets.js';
 import type { Clock, Logger } from '../domain/interfaces/system.js';
 import type { AppConfig } from '../infrastructure/configuration/app-config.js';
 import type { Database } from '../infrastructure/database/connection/database.js';
@@ -18,6 +19,7 @@ export interface ContainerOverrides {
   aiProvider?: AIProvider;
   oauthGateway?: OAuthGateway;
   formsGateway?: GoogleFormsGateway;
+  sheetsGateway?: SheetsGateway;
   logger?: Logger;
   clock?: Clock;
 }

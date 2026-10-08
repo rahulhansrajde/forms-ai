@@ -1,5 +1,6 @@
 import type { AIProvider } from '../domain/interfaces/ai-provider.js';
 import type { GoogleFormsGateway, OAuthGateway, PublishedFormVerifier } from '../domain/interfaces/google.js';
+import type { SheetsGateway } from '../domain/interfaces/sheets.js';
 import type { Clock, IdentifierGenerator, Logger } from '../domain/interfaces/system.js';
 import { AIProviderFactory } from '../infrastructure/ai/ai-provider-factory.js';
 import type { AppConfig } from '../infrastructure/configuration/app-config.js';
@@ -11,6 +12,8 @@ import { PostgresFormDraftRepository } from '../infrastructure/database/reposito
 import { PostgresFormVersionRepository } from '../infrastructure/database/repositories/postgres-form-version-repository.js';
 import { PostgresMessageRepository } from '../infrastructure/database/repositories/postgres-message-repository.js';
 import { PostgresPublishJobRepository } from '../infrastructure/database/repositories/postgres-publish-job-repository.js';
+import { PostgresSheetActionRepository } from '../infrastructure/database/repositories/postgres-sheet-action-repository.js';
+import { PostgresSpreadsheetRepository } from '../infrastructure/database/repositories/postgres-spreadsheet-repository.js';
 import { PostgresSessionRepository } from '../infrastructure/database/repositories/postgres-session-repository.js';
 import { PostgresSuggestionSetRepository } from '../infrastructure/database/repositories/postgres-suggestion-set-repository.js';
 import { PostgresUserRepository } from '../infrastructure/database/repositories/postgres-user-repository.js';
@@ -19,6 +22,8 @@ import { GoogleFormRequestBuilder } from '../infrastructure/google/google-form-r
 import { GoogleFormSnapshotVerifier } from '../infrastructure/google/google-form-snapshot-verifier.js';
 import { GoogleFormsApiGateway } from '../infrastructure/google/google-forms-api-gateway.js';
 import { GoogleOAuthHttpGateway } from '../infrastructure/google/google-oauth-http-gateway.js';
+import { GoogleSheetsApiGateway } from '../infrastructure/google/google-sheets-api-gateway.js';
+import { GoogleSheetsRequestBuilder } from '../infrastructure/google/google-sheets-request-builder.js';
 import { FetchHttpClient } from '../infrastructure/http/http-client.js';
 import { AesGcmTokenEncryptionService } from '../infrastructure/security/aes-gcm-token-encryption-service.js';
 import { CryptoRandomTokenGenerator, Sha256TokenDigester } from '../infrastructure/security/opaque-token-services.js';
@@ -29,6 +34,7 @@ export interface InfrastructureOverrides {
   aiProvider?: AIProvider;
   oauthGateway?: OAuthGateway;
   formsGateway?: GoogleFormsGateway;
+  sheetsGateway?: SheetsGateway;
 }
 
 export class InfrastructureModules {
@@ -46,10 +52,13 @@ export class InfrastructureModules {
   readonly connectedAccounts: PostgresConnectedAccountRepository;
   readonly createdForms: PostgresCreatedFormRepository;
   readonly publishJobs: PostgresPublishJobRepository;
+  readonly spreadsheets: PostgresSpreadsheetRepository;
+  readonly sheetActions: PostgresSheetActionRepository;
   readonly aiProvider: AIProvider;
   readonly oauthGateway: OAuthGateway;
   readonly formsGateway: GoogleFormsGateway;
   readonly formVerifier: PublishedFormVerifier;
+  readonly sheetsGateway: SheetsGateway;
 
   constructor(
     config: AppConfig,
@@ -71,6 +80,8 @@ export class InfrastructureModules {
     );
     this.createdForms = new PostgresCreatedFormRepository(database);
     this.publishJobs = new PostgresPublishJobRepository(database);
+    this.spreadsheets = new PostgresSpreadsheetRepository(database);
+    this.sheetActions = new PostgresSheetActionRepository(database);
     const http = new FetchHttpClient();
     this.aiProvider = overrides.aiProvider ?? new AIProviderFactory(logger).create(config.ai);
     this.oauthGateway = overrides.oauthGateway ?? new GoogleOAuthHttpGateway(config.google, http, logger);
@@ -78,5 +89,6 @@ export class InfrastructureModules {
     const formItems = new GoogleFormItemNormalizer();
     this.formsGateway = overrides.formsGateway ?? new GoogleFormsApiGateway(http, formRequests, formItems, logger);
     this.formVerifier = new GoogleFormSnapshotVerifier(formRequests, formItems);
+    this.sheetsGateway = overrides.sheetsGateway ?? new GoogleSheetsApiGateway(http, new GoogleSheetsRequestBuilder(), logger);
   }
 }

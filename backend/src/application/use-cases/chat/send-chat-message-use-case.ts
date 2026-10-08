@@ -3,9 +3,10 @@ import type { Conversation } from '../../../domain/entities/conversation.js';
 import { Message } from '../../../domain/entities/message.js';
 import type { ConversationRepository, MessageRepository } from '../../../domain/interfaces/repositories.js';
 import type { Clock, IdentifierGenerator } from '../../../domain/interfaces/system.js';
-import { toConversationSummary, toMessageView } from '../../dto/view-mappers.js';
+import { toConversationSummary } from '../../dto/view-mappers.js';
 import type { ConversationAccessService } from '../../services/access/resource-access-service.js';
 import type { ChatContextLoader } from '../../services/chat/chat-context-loader.js';
+import type { MessageViewAssembler } from '../../services/chat/message-view-assembler.js';
 import type { ChatTurnContext, IntentDecision, IntentOutcome } from '../../services/chat/chat-turn-context.js';
 import type { ConversationTitlePolicy } from '../../services/chat/conversation-title-policy.js';
 import type { IntentDispatcher } from '../../services/chat/intent-dispatcher.js';
@@ -31,6 +32,7 @@ export class SendChatMessageUseCase {
     private readonly titles: ConversationTitlePolicy,
     private readonly identifiers: IdentifierGenerator,
     private readonly clock: Clock,
+    private readonly messageViews: MessageViewAssembler,
   ) {}
 
   async execute(userId: string, conversationId: string, content: string): Promise<SendMessageResult> {
@@ -48,14 +50,16 @@ export class SendChatMessageUseCase {
       turn.outcome.reply,
       turn.outcome.intent,
       this.clock.now(),
+      turn.outcome.sheetActionId ?? null,
     );
     await this.messages.insert(assistantMessage);
     const updatedConversation = await this.recordActivity(conversation, userMessage.content);
     const changedDraft = turn.outcome.changedDraft;
+    const [userView, assistantView] = await this.messageViews.describeAll([classifiedUserMessage, assistantMessage]);
     return {
       conversation: toConversationSummary(updatedConversation),
-      userMessage: toMessageView(classifiedUserMessage),
-      assistantMessage: toMessageView(assistantMessage),
+      userMessage: userView!,
+      assistantMessage: assistantView!,
       draft: changedDraft ? await this.draftViews.describe(changedDraft.draft, changedDraft.version) : null,
       draftChanged: changedDraft !== null,
     };

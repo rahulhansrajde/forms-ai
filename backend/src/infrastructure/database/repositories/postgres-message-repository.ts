@@ -11,6 +11,7 @@ interface MessageRow extends Record<string, unknown> {
   intent: ChatIntent | null;
   created_at: Date;
   created_form_id: string | null;
+  sheet_action_id: string | null;
   form_title: string | null;
   version_number: number | null;
   responder_url: string | null;
@@ -22,7 +23,7 @@ export class PostgresMessageRepository implements MessageRepository {
 
   async insert(message: Message): Promise<void> {
     await this.database.query(
-      'INSERT INTO messages (id, conversation_id, role, content, intent, created_form_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      'INSERT INTO messages (id, conversation_id, role, content, intent, created_form_id, sheet_action_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
       [
         message.id,
         message.conversationId,
@@ -30,6 +31,7 @@ export class PostgresMessageRepository implements MessageRepository {
         message.content,
         message.intent,
         message.publishedForm?.createdFormId ?? null,
+        message.sheetActionId,
         message.createdAt,
       ],
     );
@@ -41,7 +43,7 @@ export class PostgresMessageRepository implements MessageRepository {
 
   async listNewestFirst(conversationId: string, page: KeysetPageRequest): Promise<Message[]> {
     const rows = await this.database.query<MessageRow>(
-      `SELECT m.id, m.conversation_id, m.role, m.content, m.intent, m.created_at, m.created_form_id,
+      `SELECT m.id, m.conversation_id, m.role, m.content, m.intent, m.created_at, m.created_form_id, m.sheet_action_id,
               v.schema ->> 'title' AS form_title, v.version_number, cf.responder_url, cf.edit_url
        FROM messages m
        LEFT JOIN created_forms cf ON cf.id = m.created_form_id AND cf.status = 'CREATED'
@@ -59,6 +61,7 @@ export class PostgresMessageRepository implements MessageRepository {
         content: row.content,
         intent: row.intent,
         publishedForm: this.publishedForm(row),
+        sheetActionId: row.sheet_action_id,
         createdAt: row.created_at,
       }),
     );

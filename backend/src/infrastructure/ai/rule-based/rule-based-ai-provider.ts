@@ -4,12 +4,15 @@ import type {
   AIConversationContext,
   AIProvider,
   FormGenerationRequest,
+  SheetPlanRequest,
+  SheetSummaryRequest,
   SuggestionRequest,
 } from '../../../domain/interfaces/ai-provider.js';
 import type { RuleBasedFormDesigner } from './rule-based-form-designer.js';
 import type { RuleBasedIntentClassifier } from './rule-based-intent-classifier.js';
 import type { RuleBasedOperationPlanner } from './rule-based-operation-planner.js';
 import type { RuleBasedResponder } from './rule-based-responder.js';
+import type { RuleBasedSheetPlanner } from './rule-based-sheet-planner.js';
 import type { RuleBasedSuggestionAdvisor } from './rule-based-suggestion-advisor.js';
 
 export class RuleBasedAIProvider implements AIProvider {
@@ -19,6 +22,7 @@ export class RuleBasedAIProvider implements AIProvider {
     private readonly planner: RuleBasedOperationPlanner,
     private readonly advisor: RuleBasedSuggestionAdvisor,
     private readonly responder: RuleBasedResponder,
+    private readonly sheets: RuleBasedSheetPlanner,
   ) {}
 
   async classifyIntent(message: string, context: AIConversationContext): Promise<unknown> {
@@ -41,6 +45,14 @@ export class RuleBasedAIProvider implements AIProvider {
 
   async selectSuggestions(message: string, suggestions: SuggestedQuestion[]): Promise<unknown> {
     return this.advisor.select(message, suggestions);
+  }
+
+  async planSheetAction(request: SheetPlanRequest): Promise<unknown> {
+    return this.sheets.plan(request);
+  }
+
+  async summarizeSheetData(request: SheetSummaryRequest): Promise<string> {
+    return this.sheets.summarize(request);
   }
 
   async reply(message: string, context: AIConversationContext): Promise<string> {

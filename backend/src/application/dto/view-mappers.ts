@@ -5,6 +5,7 @@ import type {
   GoogleConnectionView,
   MessageView,
   PublicationView,
+  SheetActionView,
   UserView,
 } from '@forms-ai/contracts';
 import type { Conversation } from '../../domain/entities/conversation.js';
@@ -29,7 +30,7 @@ export function toConversationSummary(conversation: Conversation): ConversationS
   return { id: conversation.id, title: conversation.title, updatedAt: conversation.updatedAt.toISOString() };
 }
 
-export function toMessageView(message: Message): MessageView {
+export function toMessageView(message: Message, sheetAction: SheetActionView | null = null): MessageView {
   return {
     id: message.id,
     conversationId: message.conversationId,
@@ -44,6 +45,7 @@ export function toMessageView(message: Message): MessageView {
           editUrl: message.publishedForm.editUrl,
         }
       : null,
+    sheetAction,
     createdAt: message.createdAt.toISOString(),
   };
 }
@@ -63,8 +65,13 @@ export function toVersionView(version: FormVersion): FormVersionView {
 
 export function toGoogleConnectionView(connection: GoogleAccountConnection | null): GoogleConnectionView {
   return connection
-    ? { connected: true, email: connection.email, connectedAt: connection.createdAt.toISOString() }
-    : { connected: false, email: null, connectedAt: null };
+    ? {
+        connected: true,
+        email: connection.email,
+        connectedAt: connection.createdAt.toISOString(),
+        capabilities: { forms: connection.canManageForms(), sheets: connection.canManageSheets() },
+      }
+    : { connected: false, email: null, connectedAt: null, capabilities: { forms: false, sheets: false } };
 }
 
 export function toPublicationView(job: PublishJob, createdForm: CreatedGoogleForm | null): PublicationView {

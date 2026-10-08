@@ -117,7 +117,7 @@ describe('chat workspace', () => {
 
   it('publishes only after explicit confirmation and shows the result in chat, not in the preview', async () => {
     const { services, spies } = createFakeServices();
-    spies.googleStatus.mockResolvedValue({ connected: true, email: 'ada@gmail.com', connectedAt: '2026-01-01T00:00:00.000Z' });
+    spies.googleStatus.mockResolvedValue({ connected: true, email: 'ada@gmail.com', connectedAt: '2026-01-01T00:00:00.000Z', capabilities: { forms: true, sheets: true } });
     renderApp(services, '/chat');
     const user = userEvent.setup();
     await sendFirstMessage(user);
@@ -157,7 +157,7 @@ describe('chat workspace', () => {
 
   it('keeps the draft and allows retry when publishing fails', async () => {
     const { services, spies, fixtures } = createFakeServices();
-    spies.googleStatus.mockResolvedValue({ connected: true, email: 'ada@gmail.com', connectedAt: '2026-01-01T00:00:00.000Z' });
+    spies.googleStatus.mockResolvedValue({ connected: true, email: 'ada@gmail.com', connectedAt: '2026-01-01T00:00:00.000Z', capabilities: { forms: true, sheets: true } });
     spies.publish.mockRejectedValueOnce(
       new ApiError(502, 'PUBLISH_FAILED', 'Google Forms could not add items. Please try again.', {
         publication: { ...fixtures.publication, status: 'FAILED', currentStep: 'ADD_ITEMS', error: 'Google Forms could not add items.', responderUrl: null, editUrl: null },

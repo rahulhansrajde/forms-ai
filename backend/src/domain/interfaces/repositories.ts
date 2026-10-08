@@ -7,6 +7,8 @@ import type { GoogleAccountConnection } from '../entities/google-account-connect
 import type { Message } from '../entities/message.js';
 import type { PublishJob } from '../entities/publish-job.js';
 import type { Session } from '../entities/session.js';
+import type { SheetAction } from '../entities/sheet-action.js';
+import type { Spreadsheet } from '../entities/spreadsheet.js';
 import type { SuggestionSet } from '../entities/suggestion-set.js';
 import type { User } from '../entities/user.js';
 
@@ -80,6 +82,24 @@ export interface CreatedFormRepository {
   insert(createdForm: CreatedGoogleForm): Promise<void>;
   update(createdForm: CreatedGoogleForm): Promise<void>;
   findByVersion(versionId: string): Promise<CreatedGoogleForm | null>;
+}
+
+export interface SpreadsheetRepository {
+  insert(spreadsheet: Spreadsheet): Promise<void>;
+  update(spreadsheet: Spreadsheet): Promise<void>;
+  findOwned(id: string, userId: string): Promise<Spreadsheet | null>;
+  findByIds(ids: readonly string[]): Promise<Spreadsheet[]>;
+  findActiveByConversation(conversationId: string): Promise<Spreadsheet | null>;
+  listByConversation(conversationId: string): Promise<Spreadsheet[]>;
+  findInConversation(conversationId: string, googleSpreadsheetId: string): Promise<Spreadsheet | null>;
+}
+
+export interface SheetActionRepository {
+  insert(action: SheetAction): Promise<void>;
+  update(action: SheetAction): Promise<void>;
+  findOwned(id: string, userId: string): Promise<SheetAction | null>;
+  findByIds(ids: readonly string[]): Promise<SheetAction[]>;
+  claimForExecution(id: string, userId: string, at: Date, staleBefore: Date): Promise<SheetAction | null>;
 }
 
 export interface PublishJobRepository {

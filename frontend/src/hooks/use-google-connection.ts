@@ -4,6 +4,8 @@ import { useServices } from '../state/services-context';
 
 export type ConnectionStatus = 'loading' | 'ready' | 'error';
 
+const DISCONNECTED: GoogleConnectionView = { connected: false, email: null, connectedAt: null, capabilities: { forms: false, sheets: false } };
+
 export interface GoogleConnection {
   connection: GoogleConnectionView | null;
   status: ConnectionStatus;
@@ -45,10 +47,10 @@ export function useGoogleConnection(): GoogleConnection {
 
   const disconnect = useCallback(async () => {
     await google.disconnect();
-    setConnection({ connected: false, email: null, connectedAt: null });
+    setConnection(DISCONNECTED);
   }, [google]);
 
-  const markDisconnected = useCallback(() => setConnection({ connected: false, email: null, connectedAt: null }), []);
+  const markDisconnected = useCallback(() => setConnection(DISCONNECTED), []);
 
   const authorizationPath = useCallback((returnTo: string) => google.authorizationPath(returnTo), [google]);
 

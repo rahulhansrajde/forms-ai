@@ -22,6 +22,14 @@ export class ClarificationMessages {
     return "There's no form draft in this chat yet. Describe the form you need and I'll create one first.";
   }
 
+  noSpreadsheet(): string {
+    return "There's no Google Sheet in this chat yet. Paste the link to an existing Google Sheet to use it here, or ask me to create one, for example: \"Create a Google Sheet for hackathon registrations with columns Name, Email and College\".";
+  }
+
+  spreadsheetLinkNeeded(): string {
+    return 'Which Google Sheet should I use? Paste its link (it looks like https://docs.google.com/spreadsheets/d/…/edit) or its spreadsheet ID.';
+  }
+
   noSuggestionsToAccept(): string {
     return "I don't have any pending suggestions to add. Would you like me to suggest some questions?";
   }

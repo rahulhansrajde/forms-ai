@@ -63,7 +63,7 @@ export class ExternalServiceError extends ApplicationError {
 
 export class GoogleOAuthError extends ExternalServiceError {
   constructor(
-    override readonly code: Extract<ErrorCode, 'GOOGLE_OAUTH_FAILED' | 'GOOGLE_NOT_CONNECTED' | 'GOOGLE_RECONNECT_REQUIRED'>,
+    override readonly code: Extract<ErrorCode, 'GOOGLE_OAUTH_FAILED' | 'GOOGLE_NOT_CONNECTED' | 'GOOGLE_RECONNECT_REQUIRED' | 'GOOGLE_SHEETS_ACCESS_REQUIRED'>,
     message: string,
     options?: { cause?: unknown },
   ) {
@@ -73,6 +73,14 @@ export class GoogleOAuthError extends ExternalServiceError {
 
 export class GoogleFormsError extends ExternalServiceError {
   override readonly code = 'GOOGLE_FORMS_FAILED';
+}
+
+export class GoogleSheetsError extends ExternalServiceError {
+  override readonly code = 'GOOGLE_SHEETS_FAILED';
+}
+
+export class ConfirmationRequiredError extends ApplicationError {
+  readonly code = 'CONFIRMATION_REQUIRED';
 }
 
 export class AIProviderError extends ExternalServiceError {

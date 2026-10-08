@@ -17,6 +17,17 @@ const WEAK_CREATE =
 const MODIFY =
   /\b(add|remove|delete|drop|rename|change|update|edit|replace|move|reorder|swap|insert|include|exclude|set|mark|turn|make)\b|\bget rid of\b|\b(should|must|needs to) be\s+(required|mandatory|optional)\b/i;
 const INFORMATION_QUESTION = /^(what|how|why|who|when|where|explain|tell me|is|are|does|do|can you explain)\b/i;
+const SHEET_NOUN = /\b(google\s+sheets?|spreadsheets?|sheets?\d*|tabs?)\b/i;
+const SHEET_PARTS = /\b(rows?|columns?|cells?|ranges?|[A-Z]{1,3}\d+:[A-Z]{1,3}\d+)\b/i;
+const SHEET_CREATE_NOUN = /\b(google\s+sheets?|spreadsheets?|sheets?)\b/i;
+const SHEET_CREATE = /\b(create|make|build|set up|start|generate)\b/i;
+const SHEET_CREATE_EXCLUSIONS = /\b(forms?|gforms?)\b/i;
+const TAB_REQUEST = /\b(add|another|new)\s+(?:a\s+)?(?:new\s+)?(?:sheet|tab)\b/i;
+const SPREADSHEET_NOUN = /\b(google\s+sheets?|spreadsheets?)\b/i;
+const SHEET_SWITCH = /\b(?:switch(?:\s+over)?\s+to|use|work\s+(?:on|with)|connect|link|open)\b.*\b(?:google\s+sheets?|spreadsheets?|sheets?)\b/i;
+const SWITCH_TARGET = /\b(instead|existing|another|other|different|this|that|my)\b/i;
+const SHEET_READ = /\b(read|show|display|list|what|which|how many|tell me|see)\b/i;
+const SHEET_MODIFY = /\b(add|create|remove|delete|rename|change|update|edit|insert|clear|format|bold|resize|set|write|put|fill|make|freeze)\b/i;
 
 export interface RuleBasedIntentResult {
   intent: ChatIntent;
@@ -32,6 +43,10 @@ export class RuleBasedIntentClassifier {
   private detect(message: string, context: AIConversationContext): ChatIntent {
     if (PUBLISH.test(message)) {
       return 'CREATE_GOOGLE_FORM';
+    }
+    const sheetIntent = this.sheetIntent(message, context);
+    if (sheetIntent) {
+      return sheetIntent;
     }
     if (this.isAcceptance(message, context)) {
       return 'ACCEPT_SUGGESTIONS';
@@ -55,6 +70,26 @@ export class RuleBasedIntentClassifier {
       return 'CREATE_FORM';
     }
     return MODIFY.test(message) ? 'MODIFY_FORM' : 'NORMAL_CHAT';
+  }
+
+  private sheetIntent(message: string, context: AIConversationContext): ChatIntent | null {
+    const mentionsSheet = SHEET_NOUN.test(message);
+    if (SHEET_SWITCH.test(message) && SWITCH_TARGET.test(message) && !SHEET_PARTS.test(message) && !SHEET_CREATE.test(message)) {
+      return 'LINK_SHEET';
+    }
+    const asksForTab = TAB_REQUEST.test(message) && !SPREADSHEET_NOUN.test(message);
+    if (SHEET_CREATE_NOUN.test(message) && SHEET_CREATE.test(message) && !SHEET_CREATE_EXCLUSIONS.test(message) && !asksForTab) {
+      return 'CREATE_SHEET';
+    }
+    const lowered = message.toLowerCase();
+    const mentionsTab = context.currentSpreadsheet?.tabs.some((tab) => lowered.includes(tab.title.toLowerCase())) ?? false;
+    if (!context.currentSpreadsheet || !(mentionsSheet || mentionsTab || SHEET_PARTS.test(message) || /\bdata\b/i.test(message))) {
+      return null;
+    }
+    if (SHEET_READ.test(message) && !SHEET_MODIFY.test(message.replace(/\b(show|tell)\s+me\b/i, ''))) {
+      return 'READ_SHEET';
+    }
+    return SHEET_MODIFY.test(message) ? 'MODIFY_SHEET' : null;
   }
 
   private isAcceptance(message: string, context: AIConversationContext): boolean {

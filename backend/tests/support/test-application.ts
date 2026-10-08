@@ -1,10 +1,11 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { ApplicationContainer, type ContainerOverrides } from '../../src/composition/application-container.js';
 import { ConfigurationLoader } from '../../src/infrastructure/configuration/app-config.js';
 import type { Database } from '../../src/infrastructure/database/connection/database.js';
 import { DatabaseFactory } from '../../src/infrastructure/database/connection/database-factory.js';
 import { PGliteDatabase } from '../../src/infrastructure/database/connection/pglite-database.js';
+import { FakeSheetsGateway } from './fake-sheets-gateway.js';
 import { FakeGoogleFormsGateway, FakeOAuthGateway, SilentLogger } from './fakes.js';
 
 export const FRONTEND_ORIGIN = 'http://localhost:3000';
@@ -13,6 +14,7 @@ export interface TestApplication {
   container: ApplicationContainer;
   oauth: FakeOAuthGateway;
   forms: FakeGoogleFormsGateway;
+  sheets: FakeSheetsGateway;
   logger: SilentLogger;
   close(): Promise<void>;
 }
@@ -36,16 +38,18 @@ export async function createTestApplication(overrides: ContainerOverrides = {}):
   });
   const oauth = new FakeOAuthGateway();
   const forms = new FakeGoogleFormsGateway();
+  const sheets = new FakeSheetsGateway();
   const logger = new SilentLogger();
   const container = await ApplicationContainer.create(config, {
     database: await openTestDatabase(),
     oauthGateway: oauth,
     formsGateway: forms,
+    sheetsGateway: sheets,
     logger,
     ...overrides,
   });
   await container.migrate();
-  return { container, oauth, forms, logger, close: () => container.close() };
+  return { container, oauth, forms, sheets, logger, close: () => container.close() };
 }
 
 export interface SignedInUser {
@@ -63,7 +67,7 @@ export async function signUpUser(application: TestApplication, overrides: Partia
     .send({
       firstName: 'Ada',
       lastName: 'Lovelace',
-      email: `ada${userCounter}-${Date.now()}@example.com`,
+      email: `ada${userCounter}-${randomUUID()}@example.com`,
       password: 'Secret123',
       confirmPassword: 'Secret123',
       ...overrides,

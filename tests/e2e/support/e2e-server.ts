@@ -12,6 +12,7 @@ import { ConfigurationLoader } from '../../../backend/src/infrastructure/configu
 import { GoogleFormItemNormalizer } from '../../../backend/src/infrastructure/google/google-form-item-normalizer.js';
 import { GoogleFormRequestBuilder } from '../../../backend/src/infrastructure/google/google-form-request-builder.js';
 import { GoogleFormsError } from '../../../backend/src/shared/errors/application-errors.js';
+import { FakeSheetsGateway } from '../../../backend/tests/support/fake-sheets-gateway.js';
 
 const API_ORIGIN = 'http://localhost:5000';
 const FAIL_ONCE_MARKER = 'Flaky';
@@ -26,7 +27,7 @@ class ConsentFreeOAuthGateway implements OAuthGateway {
       accessToken: 'e2e-access',
       refreshToken: 'e2e-refresh',
       expiresInSeconds: 3600,
-      scopes: ['openid', 'https://www.googleapis.com/auth/forms.body'],
+      scopes: ['openid', 'https://www.googleapis.com/auth/forms.body', 'https://www.googleapis.com/auth/spreadsheets'],
     };
   }
 
@@ -78,6 +79,22 @@ class RecordingFormsGateway implements GoogleFormsGateway {
   }
 }
 
+function existingSheets(): FakeSheetsGateway {
+  const sheets = new FakeSheetsGateway();
+  sheets.seed('1HackathonRegistrations0123456789abcdefXYZ', 'Hackathon Registrations', [
+    {
+      title: 'Registrations',
+      values: [
+        ['Name', 'Email', 'College'],
+        ['Ada Lovelace', 'ada@example.com', 'Analytical College'],
+        ['Alan Turing', 'alan@example.com', 'Bletchley'],
+      ],
+    },
+    { title: 'Analytics', values: [] },
+  ]);
+  return sheets;
+}
+
 async function start(): Promise<void> {
   const config = new ConfigurationLoader().load({
     NODE_ENV: 'test',
@@ -92,6 +109,7 @@ async function start(): Promise<void> {
   const container = await ApplicationContainer.create(config, {
     oauthGateway: new ConsentFreeOAuthGateway(),
     formsGateway: new RecordingFormsGateway(),
+    sheetsGateway: existingSheets(),
   });
   await container.migrate();
   container.app.listen(config.port, () => {

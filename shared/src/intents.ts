@@ -7,7 +7,13 @@ export const CHAT_INTENTS = [
   'REGENERATE_FORM',
   'CREATE_GOOGLE_FORM',
   'CLARIFICATION_REQUIRED',
+  'CREATE_SHEET',
+  'MODIFY_SHEET',
+  'READ_SHEET',
+  'LINK_SHEET',
 ] as const;
+
+export const SHEET_INTENTS: readonly ChatIntent[] = ['CREATE_SHEET', 'MODIFY_SHEET', 'READ_SHEET', 'LINK_SHEET'];
 
 export type ChatIntent = (typeof CHAT_INTENTS)[number];
 

@@ -4,6 +4,7 @@ import type {
   ConversationSummary,
   CursorPage,
   DraftView,
+  ExecuteSheetActionResult,
   FormOperation,
   FormVersionSummary,
   FormVersionView,
@@ -118,12 +119,21 @@ export class GoogleService {
   }
 }
 
+export class SheetsService {
+  constructor(private readonly api: ApiClient) {}
+
+  execute(actionId: string, confirmDestructive: boolean): Promise<ExecuteSheetActionResult> {
+    return this.api.post<ExecuteSheetActionResult>(`/sheets/actions/${actionId}/execute`, confirmDestructive ? { confirmDestructive } : {});
+  }
+}
+
 export interface FormsAIServices {
   api: ApiClient;
   auth: AuthService;
   conversations: ConversationService;
   drafts: DraftService;
   google: GoogleService;
+  sheets: SheetsService;
 }
 
 export function createServices(api: ApiClient = new ApiClient()): FormsAIServices {
@@ -133,5 +143,6 @@ export function createServices(api: ApiClient = new ApiClient()): FormsAIService
     conversations: new ConversationService(api),
     drafts: new DraftService(api),
     google: new GoogleService(api),
+    sheets: new SheetsService(api),
   };
 }

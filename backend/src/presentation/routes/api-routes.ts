@@ -3,10 +3,11 @@ import type { AuthController } from '../controllers/auth-controller.js';
 import type { ConversationController } from '../controllers/conversation-controller.js';
 import type { DraftController } from '../controllers/draft-controller.js';
 import type { GoogleIntegrationController, GoogleOAuthController } from '../controllers/google-controllers.js';
+import type { SheetsController } from '../controllers/sheets-controller.js';
 import type { AuthenticationMiddleware } from '../middleware/authentication-middleware.js';
 import type { RateLimits } from '../middleware/rate-limits.js';
 
-export const API_PATH_PREFIXES = ['/auth', '/conversations', '/drafts', '/integrations', '/google-forms'] as const;
+export const API_PATH_PREFIXES = ['/auth', '/conversations', '/drafts', '/integrations', '/google-forms', '/sheets'] as const;
 
 export interface ApiControllers {
   auth: AuthController;
@@ -14,6 +15,13 @@ export interface ApiControllers {
   drafts: DraftController;
   googleOAuth: GoogleOAuthController;
   googleIntegration: GoogleIntegrationController;
+  sheets: SheetsController;
+}
+
+export function sheetRoutes(controller: SheetsController, authentication: AuthenticationMiddleware, limits: RateLimits): Router {
+  const router = Router();
+  router.post('/sheets/actions/:actionId/execute', authentication.requireUser, limits.sheets, controller.execute);
+  return router;
 }
 
 export function authRoutes(controller: AuthController, authentication: AuthenticationMiddleware, limits: RateLimits): Router {

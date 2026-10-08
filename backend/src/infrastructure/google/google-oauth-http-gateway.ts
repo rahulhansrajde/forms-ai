@@ -14,6 +14,7 @@ export const GOOGLE_OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
   'https://www.googleapis.com/auth/forms.body',
+  'https://www.googleapis.com/auth/spreadsheets',
 ] as const;
 
 const tokenResponseSchema = z.object({
@@ -84,7 +85,7 @@ export class GoogleOAuthHttpGateway implements OAuthGateway {
       grant_type: 'refresh_token',
     });
     if (response.status === 400 && tokenErrorSchema.safeParse(response.body).data?.error === 'invalid_grant') {
-      throw new GoogleOAuthError('GOOGLE_RECONNECT_REQUIRED', 'Your Google connection has expired. Please reconnect Google Forms.');
+      throw new GoogleOAuthError('GOOGLE_RECONNECT_REQUIRED', 'Your Google connection has expired. Please reconnect Google.');
     }
     if (response.status !== 200) {
       this.logFailure('access token refresh', response);

@@ -11,6 +11,7 @@ import { Conversation } from '../../../src/domain/entities/conversation.js';
 import { FormDraft } from '../../../src/domain/entities/form-draft.js';
 import { FormVersion } from '../../../src/domain/entities/form-version.js';
 import { SuggestionSet } from '../../../src/domain/entities/suggestion-set.js';
+import { SpreadsheetReferenceParser } from '../../../src/domain/services/spreadsheet-reference-parser.js';
 import type { AIProvider } from '../../../src/domain/interfaces/ai-provider.js';
 import { AIOutputRejectedError } from '../../../src/shared/errors/application-errors.js';
 import { sampleForm } from '../../support/domain-fixtures.js';
@@ -39,6 +40,14 @@ class ScriptedAI implements AIProvider {
 
   async selectSuggestions(): Promise<unknown> {
     return null;
+  }
+
+  async planSheetAction(): Promise<unknown> {
+    return null;
+  }
+
+  async summarizeSheetData(): Promise<string> {
+    return '';
   }
 
   async reply(): Promise<string> {
@@ -74,6 +83,7 @@ function context(options: { form?: FormSchema; suggestions?: 'pending' | 'confir
     draft,
     currentVersion: version,
     openSuggestions,
+    spreadsheet: null,
     ai: { recentTurns: [], currentForm: options.form ?? null, openSuggestions: openSuggestions?.suggestions ?? [] },
   };
 }
@@ -86,6 +96,7 @@ function detector(ai: AIProvider): IntentDetectionService {
     new AffirmationDetector(),
     new IntentStatePolicy(clarifications),
     clarifications,
+    new SpreadsheetReferenceParser(),
   );
 }
 
@@ -139,4 +150,18 @@ describe('IntentDetectionService', () => {
       await expect(detector(new ScriptedAI(output)).detect('Create a form', context())).rejects.toBeInstanceOf(AIOutputRejectedError);
     },
   );
+});
+
+describe('IntentDetectionService and Google Sheets links', () => {
+  it('routes any Google Sheets link to linking without consulting the AI', async () => {
+    const ai = new ScriptedAI({ intent: 'CREATE_FORM' });
+    const decision = await detector(ai).detect('Use this https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit', context());
+    expect(decision.intent).toBe('LINK_SHEET');
+    expect(ai.calls).toBe(0);
+  });
+
+  it('also routes malformed sheet links to linking so the user gets a clear reason', async () => {
+    const ai = new ScriptedAI({ intent: 'NORMAL_CHAT' });
+    expect((await detector(ai).detect('https://docs.google.com/spreadsheets/d/oops/edit', context())).intent).toBe('LINK_SHEET');
+  });
 });

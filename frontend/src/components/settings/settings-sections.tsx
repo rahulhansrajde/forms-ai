@@ -115,7 +115,7 @@ export function GoogleSection() {
     setWorking(true);
     try {
       await google.disconnect();
-      notify('Google Forms disconnected.');
+      notify('Google disconnected.');
     } catch (caught) {
       notify(errorMessage(caught));
     } finally {
@@ -124,9 +124,11 @@ export function GoogleSection() {
     }
   };
 
+  const missingSheets = connection?.connected === true && !connection.capabilities.sheets;
+
   return (
     <div className={styles.section}>
-      <h2 className={styles.heading}>Google Forms</h2>
+      <h2 className={styles.heading}>Google Forms &amp; Sheets</h2>
       {google.status === 'loading' ? <LoadingState label="Checking connection…" /> : null}
       {google.status === 'error' ? <InlineError message="The connection status could not be loaded." /> : null}
       {connection ? (
@@ -138,22 +140,33 @@ export function GoogleSection() {
               {connection.connectedAt ? ` since ${new Date(connection.connectedAt).toLocaleDateString()}` : ''}.
             </p>
           ) : (
-            <p className={styles.muted}>Connect your Google account to publish drafts as real Google Forms. Forms AI only asks for permission to create and edit forms.</p>
+            <p className={styles.muted}>
+              Connect your Google account to publish drafts as real Google Forms and to create, read and edit Google Sheets from chat. Forms AI only acts when
+              you click a button.
+            </p>
           )}
+          <ul className={styles.capabilities} aria-label="Google permissions">
+            <Capability name="Google Forms" description="Create and edit forms" allowed={connection.capabilities.forms} />
+            <Capability name="Google Sheets" description="Create, read and edit spreadsheets" allowed={connection.capabilities.sheets} />
+          </ul>
+          {missingSheets ? (
+            <p className={styles.muted}>Your connection was made before Google Sheets was available. Allow access once to use Google Sheets from chat.</p>
+          ) : null}
         </div>
       ) : null}
       <div className={styles.actions}>
+        {missingSheets ? <ButtonLink href={google.authorizationPath('/settings')}>Allow Google Sheets</ButtonLink> : null}
         {connection?.connected ? (
           <Button variant="secondary" onClick={() => setConfirming(true)}>
             Disconnect
           </Button>
         ) : (
-          <ButtonLink href={google.authorizationPath('/settings')}>Connect Google Forms</ButtonLink>
+          <ButtonLink href={google.authorizationPath('/settings')}>Connect Google</ButtonLink>
         )}
       </div>
       <Modal
         open={confirming}
-        title="Disconnect Google Forms?"
+        title="Disconnect Google?"
         onClose={() => setConfirming(false)}
         actions={
           <>
@@ -166,9 +179,24 @@ export function GoogleSection() {
           </>
         }
       >
-        <p>Forms AI will no longer be able to create Google Forms for you. Your account, chats and drafts stay as they are.</p>
+        <p>
+          Forms AI will no longer be able to create Google Forms or work with Google Sheets for you. Your account, chats, drafts and the files already in your
+          Google Drive stay as they are.
+        </p>
       </Modal>
     </div>
+  );
+}
+
+function Capability({ name, description, allowed }: { name: string; description: string; allowed: boolean }) {
+  return (
+    <li className={styles.capability}>
+      <span className={styles.capabilityText}>
+        <strong>{name}</strong>
+        <span className={styles.muted}>{description}</span>
+      </span>
+      <span className={allowed ? styles.allowed : styles.notAllowed}>{allowed ? 'Allowed' : 'Not allowed'}</span>
+    </li>
   );
 }
 

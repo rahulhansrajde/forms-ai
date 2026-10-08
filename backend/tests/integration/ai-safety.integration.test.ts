@@ -19,6 +19,7 @@ class ScriptedAIProvider implements AIProvider {
   operations: Scripted = null;
   suggestions: Scripted = null;
   selection: Scripted = null;
+  sheetPlan: Scripted = null;
   replyText: Scripted = 'Hello';
 
   private resolve(value: Scripted): unknown {
@@ -43,6 +44,14 @@ class ScriptedAIProvider implements AIProvider {
 
   async selectSuggestions(): Promise<unknown> {
     return this.resolve(this.selection);
+  }
+
+  async planSheetAction(): Promise<unknown> {
+    return this.resolve(this.sheetPlan);
+  }
+
+  async summarizeSheetData(): Promise<string> {
+    return '';
   }
 
   async reply(): Promise<string> {

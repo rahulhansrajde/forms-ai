@@ -72,6 +72,55 @@
   color: var(--color-text-muted);
 }
 
+.capabilities {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: var(--border);
+  border-radius: var(--radius-md);
+  list-style: none;
+}
+
+.capability {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 0.75rem 0.9rem;
+}
+
+.capability + .capability {
+  border-top: var(--border);
+}
+
+.capabilityText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.allowed,
+.notAllowed {
+  flex-shrink: 0;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: var(--text-label-md);
+  font-weight: 700;
+}
+
+.allowed {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.notAllowed {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
 .toggleList {
   display: flex;
   flex-direction: column;

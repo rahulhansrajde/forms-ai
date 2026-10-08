@@ -2,12 +2,14 @@ import type {
   ConversationDetail,
   ConversationSummary,
   DraftView,
+  ExecuteSheetActionResult,
   FormSchema,
   GoogleConnectionView,
   MessageView,
   PublicationView,
   PublishResult,
   SendMessageResult,
+  SheetActionView,
   UserView,
 } from '@forms-ai/contracts';
 import { vi } from 'vitest';
@@ -17,6 +19,7 @@ import {
   ConversationService,
   DraftService,
   GoogleService,
+  SheetsService,
   type FormsAIServices,
 } from '../../src/services/forms-ai-services';
 
@@ -72,6 +75,7 @@ export function message(role: MessageView['role'], content: string, overrides: P
     content,
     intent: role === 'ASSISTANT' ? 'NORMAL_CHAT' : null,
     publishedForm: null,
+    sheetAction: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
@@ -83,6 +87,7 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
   const conversations = new ConversationService(api);
   const drafts = new DraftService(api);
   const google = new GoogleService(api);
+  const sheets = new SheetsService(api);
 
   const conversation: ConversationSummary = { id: 'conversation-1', title: 'New chat', updatedAt: '2026-01-01T00:00:00.000Z' };
   const detail: ConversationDetail = { ...conversation, createdAt: conversation.updatedAt, activeDraftId: null };
@@ -93,7 +98,7 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
     draft: draftView(),
     draftChanged: true,
   };
-  const connection: GoogleConnectionView = { connected: false, email: null, connectedAt: null };
+  const connection: GoogleConnectionView = { connected: false, email: null, connectedAt: null, capabilities: { forms: false, sheets: false } };
   const publication: PublicationView = {
     jobId: 'job-1',
     status: 'SUCCEEDED',
@@ -119,6 +124,37 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
     }),
   };
 
+  const sheetAction: SheetActionView = {
+    id: 'sheet-action-1',
+    kind: 'CREATE',
+    status: 'PENDING',
+    spreadsheetTitle: 'Event Leads',
+    summary: 'Create the spreadsheet.',
+    steps: ['Create the spreadsheet “Event Leads”', 'Add the tab “Sheet1” with columns Name, Email'],
+    destructive: false,
+    spreadsheetUrl: null,
+    spreadsheetOrigin: null,
+    tabs: [],
+    error: null,
+    table: null,
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+  const completedSheetAction: SheetActionView = {
+    ...sheetAction,
+    status: 'SUCCEEDED',
+    spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/sheet-1/edit',
+    spreadsheetOrigin: 'CREATED_BY_FORMS_AI',
+    tabs: ['Sheet1'],
+  };
+  const sheetResult: ExecuteSheetActionResult = {
+    action: completedSheetAction,
+    message: message('ASSISTANT', 'Google Sheet created successfully. “Event Leads” is ready.', {
+      id: 'sheet-result-1',
+      intent: null,
+      sheetAction: completedSheetAction,
+    }),
+  };
+
   const spies = {
     currentUser: vi.spyOn(auth, 'currentUser').mockImplementation(async () => {
       if (options.authenticated === false) {
@@ -140,8 +176,9 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
     applyOperations: vi.spyOn(drafts, 'applyOperations').mockResolvedValue(draftView()),
     googleStatus: vi.spyOn(google, 'status').mockResolvedValue(connection),
     publish: vi.spyOn(google, 'publish').mockResolvedValue(publishResult),
+    executeSheet: vi.spyOn(sheets, 'execute').mockResolvedValue(sheetResult),
   };
 
-  const services: FormsAIServices = { api, auth, conversations, drafts, google };
-  return { services, spies, fixtures: { conversation, detail, sendResult, publication, publishResult } };
+  const services: FormsAIServices = { api, auth, conversations, drafts, google, sheets };
+  return { services, spies, fixtures: { conversation, detail, sendResult, publication, publishResult, sheetAction, sheetResult } };
 }

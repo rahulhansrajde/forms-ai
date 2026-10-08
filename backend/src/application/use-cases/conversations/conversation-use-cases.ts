@@ -7,8 +7,9 @@ import type {
 } from '../../../domain/interfaces/repositories.js';
 import type { Clock, IdentifierGenerator } from '../../../domain/interfaces/system.js';
 import { NotFoundError } from '../../../shared/errors/application-errors.js';
-import { toConversationSummary, toMessageView } from '../../dto/view-mappers.js';
+import { toConversationSummary } from '../../dto/view-mappers.js';
 import type { ConversationAccessService } from '../../services/access/resource-access-service.js';
+import type { MessageViewAssembler } from '../../services/chat/message-view-assembler.js';
 import type { ConversationTitlePolicy } from '../../services/chat/conversation-title-policy.js';
 import type { KeysetCursorCodec } from '../../services/pagination/keyset-cursor-codec.js';
 import { pageFromOverfetch } from '../../services/pagination/overfetch-page.js';
@@ -92,6 +93,7 @@ export class GetConversationMessagesUseCase {
     private readonly access: ConversationAccessService,
     private readonly messages: MessageRepository,
     private readonly cursors: KeysetCursorCodec,
+    private readonly messageViews: MessageViewAssembler,
   ) {}
 
   async execute(userId: string, conversationId: string, query: PageQuery): Promise<CursorPage<MessageView>> {
@@ -103,6 +105,6 @@ export class GetConversationMessagesUseCase {
     const page = pageFromOverfetch(newestFirst, query.limit, (oldest) =>
       this.cursors.encode({ timestamp: oldest.createdAt, id: oldest.id }),
     );
-    return { items: page.items.reverse().map(toMessageView), nextCursor: page.nextCursor };
+    return { items: await this.messageViews.describeAll(page.items.reverse()), nextCursor: page.nextCursor };
   }
 }

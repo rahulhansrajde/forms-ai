@@ -33,6 +33,7 @@ export class FakeOAuthGateway implements OAuthGateway {
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/forms.body',
+    'https://www.googleapis.com/auth/spreadsheets',
   ];
   expiresInSeconds = 3600;
   refreshFailure: GoogleOAuthError | null = null;

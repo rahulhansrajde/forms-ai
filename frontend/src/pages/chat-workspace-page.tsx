@@ -1,4 +1,4 @@
-import type { PublishResult } from '@forms-ai/contracts';
+import type { ExecuteSheetActionResult, PublishResult } from '@forms-ai/contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArtifactPanel } from '../components/artifact/artifact-panel';
@@ -105,6 +105,17 @@ export function ChatWorkspacePage() {
     }
   };
 
+  const receiveSheetResult = (result: ExecuteSheetActionResult) => {
+    messages.updateSheetAction(result.action);
+    if (result.message) {
+      messages.append([result.message]);
+    }
+    if (result.message?.sheetAction?.status !== 'SUCCEEDED' || result.action.kind === 'READ') {
+      return;
+    }
+    notify(result.action.kind === 'LINK' ? 'Google Sheet connected. The link is in the chat.' : 'Your Google Sheet is ready. The link is in the chat.');
+  };
+
   const hasDraft = messages.activeDraftId !== null;
   const showHero = messages.conversationId === null && pending === null;
   const openPreview = hasDraft ? () => setPreviewOpen(true) : null;
@@ -156,16 +167,18 @@ export function ChatWorkspacePage() {
           {messages.status === 'ready' || pending !== null ? (
             <MessageList
               messages={messages.messages}
+              conversationId={messages.conversationId}
               pendingContent={pending}
               hasOlder={messages.olderCursor !== null}
               loadingOlder={messages.loadingOlder}
               onLoadOlder={() => void messages.loadOlder()}
               onShowPreview={openPreview}
+              onSheetResult={receiveSheetResult}
             />
           ) : null}
           <div className={styles.dock}>
             {sendError ? <InlineError message={sendError} /> : null}
-            <ChatComposer ref={composerRef} busy={pending !== null || messages.status === 'loading'} onSubmit={(content) => void send(content)} placeholder="Ask for changes, suggestions or a new form…" />
+            <ChatComposer ref={composerRef} busy={pending !== null || messages.status === 'loading'} onSubmit={(content) => void send(content)} placeholder="Ask about forms or Google Sheets…" />
           </div>
         </div>
       )}

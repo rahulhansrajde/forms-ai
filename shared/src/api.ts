@@ -1,6 +1,7 @@
 import type { FormOperation } from './form-operations.js';
 import type { FormSchema, QuestionType } from './form-schema.js';
 import type { ChatIntent } from './intents.js';
+import type { SheetActionView } from './sheets.js';
 import type { DraftStatus, PublishJobStatus, PublishStep, VersionSource } from './versioning.js';
 
 export const MESSAGE_PAGE_SIZE = 50;
@@ -76,6 +77,7 @@ export interface MessageView {
   content: string;
   intent: ChatIntent | null;
   publishedForm: PublishedFormView | null;
+  sheetAction: SheetActionView | null;
   createdAt: string;
 }
 
@@ -143,10 +145,21 @@ export interface RestoreVersionRequest {
 
 export type CreateDraftVersionRequest = ApplyOperationsRequest | RestoreVersionRequest;
 
+export interface GoogleCapabilitiesView {
+  forms: boolean;
+  sheets: boolean;
+}
+
 export interface GoogleConnectionView {
   connected: boolean;
   email: string | null;
   connectedAt: string | null;
+  capabilities: GoogleCapabilitiesView;
+}
+
+export interface ExecuteSheetActionResult {
+  action: SheetActionView;
+  message: MessageView | null;
 }
 
 export interface PublishRequest {

@@ -13,6 +13,7 @@ import { RuleBasedFormDesigner } from './rule-based/rule-based-form-designer.js'
 import { RuleBasedIntentClassifier } from './rule-based/rule-based-intent-classifier.js';
 import { RuleBasedOperationPlanner } from './rule-based/rule-based-operation-planner.js';
 import { RuleBasedResponder } from './rule-based/rule-based-responder.js';
+import { RuleBasedSheetPlanner } from './rule-based/rule-based-sheet-planner.js';
 import { RuleBasedSuggestionAdvisor } from './rule-based/rule-based-suggestion-advisor.js';
 import { TextMatcher } from './rule-based/text-matcher.js';
 import { TopicResolver } from './rule-based/topic-resolver.js';
@@ -39,6 +40,7 @@ export class AIProviderFactory {
       new RuleBasedOperationPlanner(matcher, questionParser),
       new RuleBasedSuggestionAdvisor(topics, matcher, questionParser),
       new RuleBasedResponder(),
+      new RuleBasedSheetPlanner(),
     );
   }
 

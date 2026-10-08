@@ -1,6 +1,7 @@
 export const GOOGLE_PROVIDER = 'GOOGLE';
 
-const GOOGLE_FORMS_SCOPE = 'https://www.googleapis.com/auth/forms.body';
+export const GOOGLE_FORMS_SCOPE = 'https://www.googleapis.com/auth/forms.body';
+export const GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 
 export interface GoogleCredentials {
   accessToken: string;
@@ -66,6 +67,10 @@ export class GoogleAccountConnection {
 
   canManageForms(): boolean {
     return this.props.scopes.includes(GOOGLE_FORMS_SCOPE);
+  }
+
+  canManageSheets(): boolean {
+    return this.props.scopes.includes(GOOGLE_SHEETS_SCOPE);
   }
 
   hasUsableAccessToken(moment: Date): boolean {

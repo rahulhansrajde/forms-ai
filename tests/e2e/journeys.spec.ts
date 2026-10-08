@@ -98,7 +98,7 @@ test('journey 6: connect Google through OAuth and create the Google Form', async
   await panel.getByRole('link', { name: 'Connect Google Forms' }).click();
 
   await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/);
-  await expect(page.getByText('Google Forms connected.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Google connected.', { exact: false })).toBeVisible();
   panel = page.getByRole('complementary', { name: 'Form draft preview' });
   await expect(panel).toBeVisible();
 
@@ -168,7 +168,7 @@ test('settings shows profile and Google connection state @responsive', async ({ 
   await page.goto('/settings');
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await expect(page.getByLabel('Email')).toHaveAttribute('readonly', '');
-  await page.getByRole('tab', { name: 'Google Forms' }).click();
+  await page.getByRole('tab', { name: 'Google' }).click();
   await expect(page.getByText('Not connected')).toBeVisible();
   await capture(page, `test-results/screens/settings-${test.info().project.name}.png`);
   await page.getByRole('button', { name: 'Back' }).click();
@@ -302,7 +302,7 @@ test('every screen fits phone, tablet and desktop widths in both themes', async 
       await page.getByRole('button', { name: /Account menu/ }).click();
       await expectToFit(page, `${theme} profile menu`);
       await page.keyboard.press('Escape');
-      for (const section of ['Profile', 'Security', 'Google Forms', 'Preferences']) {
+      for (const section of ['Profile', 'Security', 'Google', 'Preferences']) {
         await page.goto('/settings');
         await page.getByRole('tab', { name: section }).click();
         await expectToFit(page, `${theme} settings ${section}`);
@@ -362,6 +362,107 @@ test('the new chat heading and composer are centred as one group below the heade
   await page.goto('/chat');
   await sendMessage(page, 'Create a contact form.');
   await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/);
+});
+
+test('journey 8: create, change and read a Google Sheet only through explicit buttons', async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUp(page);
+  await page.goto('/auth/google?returnTo=/settings');
+  const permissions = page.getByRole('list', { name: 'Google permissions' });
+  await expect(permissions.getByText('Allowed')).toHaveCount(2);
+
+  await page.goto('/chat');
+  await sendMessage(page, 'Create a spreadsheet called Event Leads with columns Name, Email, Phone');
+  const log = page.getByRole('log', { name: 'Conversation' });
+  const proposal = log.getByRole('region', { name: 'New Google Sheet “Event Leads”' });
+  await expect(proposal).toContainText('with columns Name, Email, Phone');
+  await expect(log.getByRole('link', { name: 'Open sheet' })).toHaveCount(0);
+  await proposal.getByRole('button', { name: 'Create Google Sheet' }).click();
+
+  const created = log.getByRole('region', { name: 'Google Sheets result for “Event Leads”' }).first();
+  await expect(created).toContainText('Google Sheet created successfully. “Event Leads” is ready.');
+  const open = created.getByRole('link', { name: 'Open sheet' });
+  await expect(open).toHaveAttribute('href', /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[^/]+\/edit$/);
+  await expect(open).toHaveAttribute('target', '_blank');
+  await expect(proposal.getByText('Created in Google Sheets')).toBeVisible();
+
+  await sendMessage(page, 'Clear column B');
+  const change = log.getByRole('region', { name: 'Changes to “Event Leads”' });
+  await expect(change.getByText('Removes data')).toBeVisible();
+  await change.getByRole('button', { name: 'Apply changes' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Remove data from Google Sheets?' });
+  await expect(dialog).toContainText('Clear the values in B2:B');
+  await dialog.getByRole('button', { name: 'Yes, apply changes' }).click();
+  await expect(change.getByText('Changes applied')).toBeVisible();
+
+  await sendMessage(page, 'Show me the first 5 rows');
+  const read = log.getByRole('region', { name: 'Read from “Event Leads”' });
+  await read.getByRole('button', { name: 'Read sheet' }).click();
+  const table = log.getByRole('region', { name: 'Values from Sheet1 · A1:C6' });
+  await expect(table.getByRole('columnheader')).toHaveText(['Name', 'Email', 'Phone']);
+
+  const conversationUrl = page.url();
+  for (const theme of ['light', 'dark'] as const) {
+    await page.evaluate((value) => localStorage.setItem('forms-ai.theme', value), theme);
+    for (const width of [320, 390, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(conversationUrl);
+      await expect(page.getByRole('region', { name: 'Values from Sheet1 · A1:C6' })).toBeVisible();
+      await expectToFit(page, `${theme} sheets conversation`);
+    }
+  }
+  await capture(page, 'test-results/screens/sheets-desktop.png');
+  await expect(page.getByRole('region', { name: /Google Sheets result for/ })).toHaveCount(3);
+  await expect(page.getByRole('region', { name: 'New Google Sheet “Event Leads”' }).getByText('Created in Google Sheets')).toBeVisible();
+});
+
+test('journey 9: link an existing Google Sheet by URL and work on it', async ({ page }) => {
+  test.setTimeout(120_000);
+  const existingUrl = 'https://docs.google.com/spreadsheets/d/1HackathonRegistrations0123456789abcdefXYZ/edit';
+  await signUp(page);
+  await page.goto('/auth/google?returnTo=/settings');
+  await expect(page.getByRole('list', { name: 'Google permissions' }).getByText('Allowed')).toHaveCount(2);
+  await page.goto('/chat');
+
+  await sendMessage(page, 'Create a spreadsheet called Event Leads with columns Name, Email');
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await log.getByRole('region', { name: 'New Google Sheet “Event Leads”' }).getByRole('button', { name: 'Create Google Sheet' }).click();
+  await expect(log.getByRole('region', { name: 'Google Sheets result for “Event Leads”' })).toBeVisible();
+
+  await sendMessage(page, `Use this Google Sheet: ${existingUrl}`);
+  const found = log.getByRole('region', { name: 'Google Sheet found' });
+  await expect(found).toContainText('Hackathon Registrations');
+  await expect(found).toContainText('Registrations, Analytics');
+  await found.getByRole('button', { name: 'Connect Google Sheet' }).click();
+  const connected = log.getByRole('region', { name: 'Google Sheets result for “Hackathon Registrations”' }).first();
+  await expect(connected).toContainText('Google Sheet connected successfully.');
+  await expect(connected.getByRole('link', { name: 'Open sheet' })).toHaveAttribute('href', existingUrl);
+  await expect(found.getByText('Connected to this chat')).toBeVisible();
+
+  await sendMessage(page, 'Read the first 20 rows');
+  await log.getByRole('region', { name: 'Read from “Hackathon Registrations”' }).getByRole('button', { name: 'Read sheet' }).click();
+  const table = log.getByRole('region', { name: 'Values from Registrations · A1:C21' });
+  await expect(table.getByRole('columnheader')).toHaveText(['Name', 'Email', 'College']);
+  await expect(table.getByRole('cell', { name: 'Alan Turing' })).toBeVisible();
+
+  await sendMessage(page, 'Add a Phone Number column after Email');
+  const change = log.getByRole('region', { name: 'Changes to “Hackathon Registrations”' });
+  await change.getByRole('button', { name: 'Apply changes' }).click();
+  await expect(change.getByText('Changes applied')).toBeVisible();
+
+  const conversationUrl = page.url();
+  for (const theme of ['light', 'dark'] as const) {
+    await page.evaluate((value) => localStorage.setItem('forms-ai.theme', value), theme);
+    for (const width of [320, 390, 768, 1280]) {
+      await page.setViewportSize({ width, height: 820 });
+      await page.goto(conversationUrl);
+      await expect(page.getByRole('region', { name: 'Google Sheet found' })).toBeVisible();
+      await expectToFit(page, `${theme} linked sheet conversation`);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('region', { name: 'Google Sheet found' }).scrollIntoViewIfNeeded();
+  await capture(page, 'test-results/screens/linked-sheet-mobile-dark.png');
 });
 
 test('security settings end with the password form and log out stays in the profile menu', async ({ page }) => {

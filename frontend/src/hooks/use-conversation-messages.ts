@@ -1,4 +1,4 @@
-import type { MessageView } from '@forms-ai/contracts';
+import type { MessageView, SheetActionView } from '@forms-ai/contracts';
 import { useCallback, useEffect, useState } from 'react';
 import { useServices } from '../state/services-context';
 import { errorMessage } from '../utils/error-messages';
@@ -18,6 +18,7 @@ export interface ConversationMessages extends MessagesState {
   loadingOlder: boolean;
   loadOlder(): Promise<void>;
   append(messages: MessageView[]): void;
+  updateSheetAction(action: SheetActionView): void;
   adopt(conversationId: string): void;
   setActiveDraftId(draftId: string): void;
   retry(): void;
@@ -101,6 +102,13 @@ export function useConversationMessages(conversationId: string | null): Conversa
     setState((current) => ({ ...current, status: 'ready', messages: [...current.messages, ...messages] }));
   }, []);
 
+  const updateSheetAction = useCallback((action: SheetActionView) => {
+    setState((current) => ({
+      ...current,
+      messages: current.messages.map((message) => (message.sheetAction?.id === action.id ? { ...message, sheetAction: action } : message)),
+    }));
+  }, []);
+
   const adopt = useCallback((id: string) => {
     setState((current) => ({ ...current, conversationId: id, status: 'ready' }));
   }, []);
@@ -113,5 +121,5 @@ export function useConversationMessages(conversationId: string | null): Conversa
     setState((current) => (current.conversationId ? { ...current, status: 'loading', error: null } : current));
   }, []);
 
-  return { ...state, loadingOlder, loadOlder, append, adopt, setActiveDraftId, retry };
+  return { ...state, loadingOlder, loadOlder, append, updateSheetAction, adopt, setActiveDraftId, retry };
 }

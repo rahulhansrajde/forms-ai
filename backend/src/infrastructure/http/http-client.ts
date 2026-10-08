@@ -1,7 +1,7 @@
 import { ExternalServiceError } from '../../shared/errors/application-errors.js';
 
 export interface HttpRequest {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'PUT';
   url: string;
   headers?: Record<string, string>;
   body?: string;

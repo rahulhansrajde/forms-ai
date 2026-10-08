@@ -1,4 +1,5 @@
 import type { AIProvider } from '../../../domain/interfaces/ai-provider.js';
+import type { SpreadsheetReferenceParser } from '../../../domain/services/spreadsheet-reference-parser.js';
 import { intentClassificationOutputSchema } from '../ai/ai-output-schemas.js';
 import type { AIOutputValidator } from '../ai/ai-output-validator.js';
 import type { ChatTurnContext, IntentDecision } from '../chat/chat-turn-context.js';
@@ -13,9 +14,13 @@ export class IntentDetectionService {
     private readonly affirmations: AffirmationDetector,
     private readonly policy: IntentStatePolicy,
     private readonly clarifications: ClarificationMessages,
+    private readonly references: SpreadsheetReferenceParser,
   ) {}
 
   async detect(message: string, context: ChatTurnContext): Promise<IntentDecision> {
+    if (this.references.parse(message).kind !== 'NONE') {
+      return { intent: 'LINK_SHEET', clarification: null, acceptAllSuggestions: false, requestsSuggestionConfirmation: false };
+    }
     if (context.openSuggestions?.isAwaitingConfirmation() && this.affirmations.isBareAffirmation(message)) {
       return this.acceptAll();
     }

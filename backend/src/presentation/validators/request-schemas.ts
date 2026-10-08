@@ -54,6 +54,10 @@ export const createDraftVersionBodySchema = z.union([
 
 export const publishBodySchema = z.object({ draftId: z.uuid(), versionId: z.uuid() }).strict();
 
+export const sheetActionParamsSchema = z.object({ actionId: z.uuid() });
+
+export const executeSheetActionBodySchema = z.object({ confirmDestructive: z.boolean().optional() }).strict();
+
 export const googleAuthorizationQuerySchema = z.object({ returnTo: z.string().max(512).optional() });
 
 export const googleCallbackQuerySchema = z.object({

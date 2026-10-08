@@ -7,7 +7,7 @@ import type { AuthenticationMiddleware } from '../middleware/authentication-midd
 import type { ErrorResponder } from '../middleware/error-responder.js';
 import type { OriginGuard } from '../middleware/origin-guard.js';
 import type { RateLimits } from '../middleware/rate-limits.js';
-import { API_PATH_PREFIXES, authRoutes, conversationRoutes, draftRoutes, googleRoutes, type ApiControllers } from '../routes/api-routes.js';
+import { API_PATH_PREFIXES, authRoutes, conversationRoutes, draftRoutes, googleRoutes, sheetRoutes, type ApiControllers } from '../routes/api-routes.js';
 
 const JSON_BODY_LIMIT = '256kb';
 
@@ -47,6 +47,7 @@ export class HttpApplicationFactory {
     app.use(authRoutes(controllers.auth, authentication, rateLimits));
     app.use(conversationRoutes(controllers.conversations, authentication, rateLimits));
     app.use(draftRoutes(controllers.drafts, authentication));
+    app.use(sheetRoutes(controllers.sheets, authentication, rateLimits));
   }
 
   private mountFrontend(app: Express, directory: string | null): void {

@@ -4,6 +4,9 @@ import { ConversationAccessService, DraftAccessService } from '../application/se
 import { PasswordAuthenticationService } from '../application/services/auth/password-authentication-service.js';
 import { SessionService } from '../application/services/auth/session-service.js';
 import { ChatContextLoader } from '../application/services/chat/chat-context-loader.js';
+import type { IntentHandler } from '../application/services/chat/handlers/intent-handler.js';
+import { LinkSheetHandler, SheetActionHandler } from '../application/services/chat/handlers/sheet-handlers.js';
+import { MessageViewAssembler } from '../application/services/chat/message-view-assembler.js';
 import { ChatReplyService } from '../application/services/chat/chat-reply-service.js';
 import { ConversationTitlePolicy } from '../application/services/chat/conversation-title-policy.js';
 import {
@@ -35,6 +38,14 @@ import { KeysetCursorCodec } from '../application/services/pagination/keyset-cur
 import { GoogleFormPublisher } from '../application/services/publishing/google-form-publisher.js';
 import { PublicationAnnouncer } from '../application/services/publishing/publication-announcer.js';
 import { PublishJobTracker } from '../application/services/publishing/publish-job-tracker.js';
+import { SheetActionExecutor } from '../application/services/sheets/sheet-action-executor.js';
+import { SheetActionVerifier } from '../application/services/sheets/sheet-action-verifier.js';
+import { SheetActionViewService } from '../application/services/sheets/sheet-action-view-service.js';
+import { SheetPlanningService } from '../application/services/sheets/sheet-planning-service.js';
+import { SheetResultAnnouncer } from '../application/services/sheets/sheet-result-announcer.js';
+import { SheetDataSummarizer } from '../application/services/sheets/sheet-data-summarizer.js';
+import { SpreadsheetAccessChecker } from '../application/services/sheets/spreadsheet-access-checker.js';
+import { SpreadsheetInspector } from '../application/services/sheets/spreadsheet-inspector.js';
 import { SuggestionGenerationService } from '../application/services/suggestions/suggestion-generation-service.js';
 import { SuggestionSelectionService } from '../application/services/suggestions/suggestion-selection-service.js';
 import { SuggestionSetService } from '../application/services/suggestions/suggestion-set-service.js';
@@ -42,6 +53,7 @@ import type { AuthUseCases } from '../presentation/controllers/auth-controller.j
 import type { ConversationUseCases } from '../presentation/controllers/conversation-controller.js';
 import type { DraftUseCases } from '../presentation/controllers/draft-controller.js';
 import type { GoogleIntegrationUseCases, GoogleOAuthUseCases } from '../presentation/controllers/google-controllers.js';
+import type { SheetsUseCases } from '../presentation/controllers/sheets-controller.js';
 import {
   ChangePasswordUseCase,
   GetCurrentUserUseCase,
@@ -71,6 +83,8 @@ import {
   StartGoogleAuthorizationUseCase,
 } from '../application/use-cases/google/google-connection-use-cases.js';
 import { CreateGoogleFormUseCase } from '../application/use-cases/publishing/create-google-form-use-case.js';
+import { ExecuteSheetActionUseCase } from '../application/use-cases/sheets/execute-sheet-action-use-case.js';
+import { A1Notation } from '../domain/services/a1-notation.js';
 import { FormBlueprintBuilder } from '../domain/services/form-blueprint-builder.js';
 import { FormElementIdFactory } from '../domain/services/form-element-id-factory.js';
 import { FormOperationApplier } from '../domain/services/form-operation-applier.js';
@@ -80,6 +94,9 @@ import { PasswordPolicy } from '../domain/services/password-policy.js';
 import { QuestionFactory } from '../domain/services/question-factory.js';
 import { QuestionNormalizer } from '../domain/services/question-normalizer.js';
 import { SchemaChangeDetector } from '../domain/services/schema-change-detector.js';
+import { SheetOperationDescriber } from '../domain/services/sheet-operation-describer.js';
+import { SheetOperationResolver } from '../domain/services/sheet-operation-resolver.js';
+import { SpreadsheetReferenceParser } from '../domain/services/spreadsheet-reference-parser.js';
 import type { AppConfig } from '../infrastructure/configuration/app-config.js';
 import type { InfrastructureModules } from './infrastructure-modules.js';
 
@@ -108,12 +125,16 @@ export class ApplicationModules {
   readonly drafts: DraftUseCases;
   readonly googleOAuth: GoogleOAuthUseCases;
   readonly googleIntegration: GoogleIntegrationUseCases;
+  readonly sheets: SheetsUseCases;
 
   private readonly forms: FormDomainServices;
   private readonly versions: FormVersionService;
   private readonly draftViews: DraftViewService;
   private readonly conversationAccess: ConversationAccessService;
   private readonly draftAccess: DraftAccessService;
+  private readonly credentials: GoogleCredentialService;
+  private readonly sheetViews: SheetActionViewService;
+  private readonly messageViews: MessageViewAssembler;
 
   constructor(
     config: AppConfig,
@@ -140,12 +161,16 @@ export class ApplicationModules {
     this.draftViews = new DraftViewService(this.versions, infrastructure.publishJobs, infrastructure.createdForms);
     this.conversationAccess = new ConversationAccessService(infrastructure.conversations);
     this.draftAccess = new DraftAccessService(infrastructure.drafts);
+    this.credentials = new GoogleCredentialService(infrastructure.oauthGateway, infrastructure.connectedAccounts, clock);
+    this.sheetViews = new SheetActionViewService(infrastructure.sheetActions, infrastructure.spreadsheets, new SheetOperationDescriber());
+    this.messageViews = new MessageViewAssembler(this.sheetViews);
     this.auth = this.createAuthUseCases();
     this.conversations = this.createConversationUseCases();
     this.drafts = this.createDraftUseCases();
     const google = this.createGoogleUseCases();
     this.googleOAuth = google.oauth;
     this.googleIntegration = google.integration;
+    this.sheets = this.createSheetsUseCases();
   }
 
   private createAuthUseCases(): AuthUseCases {
@@ -171,13 +196,13 @@ export class ApplicationModules {
       list: new ListConversationsUseCase(conversations, cursors),
       get: new GetConversationUseCase(this.conversationAccess, drafts),
       delete: new DeleteConversationUseCase(this.conversationAccess, conversations),
-      messages: new GetConversationMessagesUseCase(this.conversationAccess, messages, cursors),
+      messages: new GetConversationMessagesUseCase(this.conversationAccess, messages, cursors, this.messageViews),
       sendMessage: this.createSendChatMessageUseCase(titles),
     };
   }
 
   private createSendChatMessageUseCase(titles: ConversationTitlePolicy): SendChatMessageUseCase {
-    const { aiProvider, messages, conversations, drafts, suggestionSets, logger, database, identifiers, clock } = this.infrastructure;
+    const { aiProvider, messages, conversations, drafts, suggestionSets, spreadsheets, logger, database, identifiers, clock } = this.infrastructure;
     const sanitizer = new AIOutputSanitizer();
     const outputValidator = new AIOutputValidator(sanitizer);
     const clarifications = new ClarificationMessages();
@@ -202,6 +227,7 @@ export class ApplicationModules {
         suggestionSetService,
         new SuggestionReplyComposer(),
       ),
+      ...this.createSheetHandlers(new SheetPlanningService(aiProvider, outputValidator), clarifications),
       new AcceptSuggestionsHandler(
         new SuggestionSelectionService(aiProvider, outputValidator),
         suggestionSetService,
@@ -214,13 +240,14 @@ export class ApplicationModules {
     ];
     return new SendChatMessageUseCase(
       this.conversationAccess,
-      new ChatContextLoader(messages, drafts, this.versions, suggestionSets),
+      new ChatContextLoader(messages, drafts, this.versions, suggestionSets, spreadsheets),
       new IntentDetectionService(
         aiProvider,
         outputValidator,
         new AffirmationDetector(),
         new IntentStatePolicy(clarifications),
         clarifications,
+        new SpreadsheetReferenceParser(),
       ),
       new IntentDispatcher(handlers, clarifications, logger),
       suggestionSetService,
@@ -230,7 +257,63 @@ export class ApplicationModules {
       titles,
       identifiers,
       clock,
+      this.messageViews,
     );
+  }
+
+  private createSheetHandlers(planner: SheetPlanningService, clarifications: ClarificationMessages): IntentHandler[] {
+    const { sheetActions, spreadsheets, sheetsGateway, identifiers, clock } = this.infrastructure;
+    const collaborators = { planner, actions: sheetActions, clarifications, identifiers, clock };
+    return [
+      new SheetActionHandler('CREATE_SHEET', 'CREATE', collaborators),
+      new SheetActionHandler('MODIFY_SHEET', 'MODIFY', collaborators),
+      new SheetActionHandler('READ_SHEET', 'READ', collaborators),
+      new LinkSheetHandler({
+        references: new SpreadsheetReferenceParser(),
+        credentials: this.credentials,
+        access: new SpreadsheetAccessChecker(new SpreadsheetInspector(sheetsGateway, new A1Notation())),
+        spreadsheets,
+        actions: sheetActions,
+        clarifications,
+        identifiers,
+        clock,
+      }),
+    ];
+  }
+
+  private createSheetsUseCases(): SheetsUseCases {
+    const { sheetsGateway, spreadsheets, sheetActions, messages, conversations, aiProvider, logger, database, identifiers, clock } = this.infrastructure;
+    const notation = new A1Notation();
+    const inspector = new SpreadsheetInspector(sheetsGateway, notation);
+    const executor = new SheetActionExecutor(
+      sheetsGateway,
+      new SheetOperationResolver(notation),
+      inspector,
+      new SheetActionVerifier(sheetsGateway),
+      spreadsheets,
+      sheetActions,
+      database,
+      identifiers,
+      clock,
+      new SpreadsheetAccessChecker(inspector),
+      new SpreadsheetReferenceParser(),
+    );
+    return {
+      execute: new ExecuteSheetActionUseCase(
+        this.credentials,
+        {
+          actions: sheetActions,
+          spreadsheets,
+          executor,
+          announcer: new SheetResultAnnouncer(messages, conversations, identifiers, clock),
+          views: this.sheetViews,
+          messages: this.messageViews,
+          transactions: database,
+          summarizer: new SheetDataSummarizer(aiProvider, logger),
+        },
+        clock,
+      ),
+    };
   }
 
   private createDraftUseCases(): DraftUseCases {
@@ -255,7 +338,7 @@ export class ApplicationModules {
     const { messages, conversations } = this.infrastructure;
     const { identifiers, clock, logger, database } = this.infrastructure;
     const oauth = new GoogleOAuthService(oauthGateway, connectedAccounts, tokenGenerator, identifiers, clock);
-    const credentials = new GoogleCredentialService(oauthGateway, connectedAccounts, clock);
+    const credentials = this.credentials;
     return {
       oauth: {
         start: new StartGoogleAuthorizationUseCase(oauth),

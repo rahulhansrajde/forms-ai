@@ -4,6 +4,8 @@ import type {
   AIConversationContext,
   AIProvider,
   FormGenerationRequest,
+  SheetPlanRequest,
+  SheetSummaryRequest,
   SuggestionRequest,
 } from '../../../domain/interfaces/ai-provider.js';
 import type { AIPromptLibrary } from '../prompts/ai-prompt-library.js';
@@ -71,6 +73,24 @@ export class BedrockAIProvider implements AIProvider {
       system: this.prompts.selectionSystem(),
       prompt: `Suggestions:\n${this.prompts.describeSuggestions(suggestions)}\n\nUser message:\n${message}`,
     });
+  }
+
+  planSheetAction(request: SheetPlanRequest): Promise<unknown> {
+    return this.structured({
+      output: STRUCTURED_OUTPUTS.planSheetAction,
+      system: this.prompts.sheetPlanningSystem(request.kind),
+      prompt: `${this.prompts.describeContext({ ...request.context, currentForm: null })}\n\nRequest:\n${request.instruction}`,
+    });
+  }
+
+  summarizeSheetData(request: SheetSummaryRequest): Promise<string> {
+    return this.fallback.invoke('summarize sheet data', (model) =>
+      this.client.generate(model, {
+        system: this.prompts.sheetSummarySystem(),
+        prompt: this.prompts.describeSheetTable(request),
+        maxOutputTokens: REPLY_MAX_TOKENS,
+      }),
+    );
   }
 
   reply(message: string, context: AIConversationContext): Promise<string> {

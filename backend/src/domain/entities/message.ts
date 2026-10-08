@@ -15,6 +15,7 @@ export interface MessageProps {
   content: string;
   intent: ChatIntent | null;
   publishedForm: PublishedFormReference | null;
+  sheetActionId: string | null;
   createdAt: Date;
 }
 
@@ -22,11 +23,15 @@ export class Message {
   private constructor(private readonly props: MessageProps) {}
 
   static fromUser(id: string, conversationId: string, content: string, at: Date): Message {
-    return new Message({ id, conversationId, role: 'USER', content, intent: null, publishedForm: null, createdAt: at });
+    return new Message({ id, conversationId, role: 'USER', content, intent: null, publishedForm: null, sheetActionId: null, createdAt: at });
   }
 
-  static fromAssistant(id: string, conversationId: string, content: string, intent: ChatIntent, at: Date): Message {
-    return new Message({ id, conversationId, role: 'ASSISTANT', content, intent, publishedForm: null, createdAt: at });
+  static fromAssistant(id: string, conversationId: string, content: string, intent: ChatIntent, at: Date, sheetActionId: string | null = null): Message {
+    return new Message({ id, conversationId, role: 'ASSISTANT', content, intent, publishedForm: null, sheetActionId, createdAt: at });
+  }
+
+  static sheetResult(id: string, conversationId: string, content: string, sheetActionId: string | null, at: Date): Message {
+    return new Message({ id, conversationId, role: 'ASSISTANT', content, intent: null, publishedForm: null, sheetActionId, createdAt: at });
   }
 
   static publicationNotice(
@@ -36,7 +41,7 @@ export class Message {
     publishedForm: PublishedFormReference | null,
     at: Date,
   ): Message {
-    return new Message({ id, conversationId, role: 'ASSISTANT', content, intent: null, publishedForm, createdAt: at });
+    return new Message({ id, conversationId, role: 'ASSISTANT', content, intent: null, publishedForm, sheetActionId: null, createdAt: at });
   }
 
   static restore(props: MessageProps): Message {
@@ -65,6 +70,10 @@ export class Message {
 
   get publishedForm(): PublishedFormReference | null {
     return this.props.publishedForm;
+  }
+
+  get sheetActionId(): string | null {
+    return this.props.sheetActionId;
   }
 
   get createdAt(): Date {

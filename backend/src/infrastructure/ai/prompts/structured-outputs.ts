@@ -5,6 +5,7 @@ import {
   suggestionSelectionOutputSchema,
 } from '../../../application/services/ai/ai-output-schemas.js';
 import { formBlueprintSchema, formOperationSchema } from '../../../domain/services/form-schema-definitions.js';
+import { sheetPlanOutputSchema } from '../../../domain/services/sheet-operation-definitions.js';
 
 export interface StructuredOutput {
   name: string;
@@ -28,4 +29,5 @@ export const STRUCTURED_OUTPUTS = {
   planOperations: { name: 'form operations', jsonSchema: toJsonSchema(operationPlanOutputSchema) },
   suggestQuestions: { name: 'question suggestions', jsonSchema: toJsonSchema(suggestionProposalOutputSchema) },
   selectSuggestions: { name: 'suggestion selection', jsonSchema: toJsonSchema(suggestionSelectionOutputSchema) },
+  planSheetAction: { name: 'google sheets plan', jsonSchema: toJsonSchema(sheetPlanOutputSchema) },
 } satisfies Record<string, StructuredOutput>;

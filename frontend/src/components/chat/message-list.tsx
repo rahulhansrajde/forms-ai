@@ -1,4 +1,4 @@
-import type { MessageView } from '@forms-ai/contracts';
+import type { ExecuteSheetActionResult, MessageView } from '@forms-ai/contracts';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { offersPreview } from '../../utils/intent-presentation';
 import { Button } from '../ui/button';
@@ -7,17 +7,27 @@ import { Logo } from '../ui/logo';
 import { Spinner } from '../ui/spinner';
 import { GoogleFormCreatedMessage } from './google-form-created-message';
 import styles from './message-list.module.css';
+import { SheetActionCard, SheetResultMessage } from './sheet-action-card';
 
 interface MessageListProps {
   messages: readonly MessageView[];
+  conversationId: string | null;
   pendingContent: string | null;
   hasOlder: boolean;
   loadingOlder: boolean;
   onLoadOlder(): void;
   onShowPreview: (() => void) | null;
+  onSheetResult(result: ExecuteSheetActionResult): void;
 }
 
-export function MessageList({ messages, pendingContent, hasOlder, loadingOlder, onLoadOlder, onShowPreview }: MessageListProps) {
+interface MessageItemProps {
+  message: MessageView;
+  conversationId: string | null;
+  onShowPreview: (() => void) | null;
+  onSheetResult(result: ExecuteSheetActionResult): void;
+}
+
+export function MessageList({ messages, conversationId, pendingContent, hasOlder, loadingOlder, onLoadOlder, onShowPreview, onSheetResult }: MessageListProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const previousFirstId = useRef<string | null>(null);
@@ -73,7 +83,7 @@ export function MessageList({ messages, pendingContent, hasOlder, loadingOlder, 
           </div>
         ) : null}
         {messages.map((message) => (
-          <MessageItem key={message.id} message={message} onShowPreview={onShowPreview} />
+          <MessageItem key={message.id} message={message} conversationId={conversationId} onShowPreview={onShowPreview} onSheetResult={onSheetResult} />
         ))}
         {pendingContent !== null ? (
           <>
@@ -100,7 +110,7 @@ export function MessageList({ messages, pendingContent, hasOlder, loadingOlder, 
   );
 }
 
-function MessageItem({ message, onShowPreview }: { message: MessageView; onShowPreview: (() => void) | null }) {
+function MessageItem({ message, conversationId, onShowPreview, onSheetResult }: MessageItemProps) {
   if (message.role === 'USER') {
     return (
       <div className={styles.user}>
@@ -117,9 +127,14 @@ function MessageItem({ message, onShowPreview }: { message: MessageView; onShowP
         <span className="visually-hidden">Forms AI said:</span>
         {message.publishedForm ? (
           <GoogleFormCreatedMessage content={message.content} form={message.publishedForm} />
+        ) : message.sheetAction && message.intent === null ? (
+          <SheetResultMessage content={message.content} action={message.sheetAction} />
         ) : (
           <p className={styles.assistantText}>{message.content}</p>
         )}
+        {message.sheetAction && message.intent !== null ? (
+          <SheetActionCard action={message.sheetAction} conversationId={conversationId} onResult={onSheetResult} />
+        ) : null}
         {onShowPreview && offersPreview(message.intent) ? (
           <Button variant="secondary" size="sm" icon={<Icon name="preview" size={16} />} onClick={onShowPreview}>
             Show preview

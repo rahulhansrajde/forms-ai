@@ -5,6 +5,7 @@ import { AuthController } from '../presentation/controllers/auth-controller.js';
 import { ConversationController } from '../presentation/controllers/conversation-controller.js';
 import { DraftController } from '../presentation/controllers/draft-controller.js';
 import { GoogleIntegrationController, GoogleOAuthController } from '../presentation/controllers/google-controllers.js';
+import { SheetsController } from '../presentation/controllers/sheets-controller.js';
 import { OAuthStateCookie, SessionCookie } from '../presentation/http/cookies.js';
 import { HttpApplicationFactory } from '../presentation/http/http-application-factory.js';
 import { ReturnPathPolicy } from '../presentation/http/return-path-policy.js';
@@ -40,6 +41,7 @@ export class PresentationModules {
           logger: this.logger,
         }),
         googleIntegration: new GoogleIntegrationController(this.application.googleIntegration, validator),
+        sheets: new SheetsController(this.application.sheets, validator),
       },
       authentication: new AuthenticationMiddleware(this.application.sessions, sessionCookie, `${this.config.frontendOrigin}/login`),
       originGuard: new OriginGuard([this.config.frontendOrigin, new URL(this.config.google.redirectUri).origin]),

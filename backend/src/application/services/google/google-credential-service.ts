@@ -14,7 +14,7 @@ export class GoogleCredentialService {
   async requireConnection(userId: string): Promise<GoogleAccountConnection> {
     const connection = await this.connections.findGoogleConnection(userId);
     if (!connection) {
-      throw new GoogleOAuthError('GOOGLE_NOT_CONNECTED', 'Connect Google Forms to create this form.');
+      throw new GoogleOAuthError('GOOGLE_NOT_CONNECTED', 'Connect your Google account to continue.');
     }
     return connection;
   }
@@ -51,6 +51,6 @@ export class GoogleCredentialService {
   }
 
   private reconnectRequired(): GoogleOAuthError {
-    return new GoogleOAuthError('GOOGLE_RECONNECT_REQUIRED', 'Your Google connection has expired. Please reconnect Google Forms.');
+    return new GoogleOAuthError('GOOGLE_RECONNECT_REQUIRED', 'Your Google connection has expired. Please reconnect Google.');
   }
 }
