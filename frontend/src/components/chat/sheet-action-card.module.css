@@ -67,6 +67,33 @@
   color: var(--color-text-subtle);
 }
 
+.stepNote {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-label-md);
+}
+
+.change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.35rem;
+  margin-top: 0.15rem;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.from {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-text-subtle);
+}
+
+.to {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
 .modalSteps {
   margin: var(--space-sm) 0;
 }

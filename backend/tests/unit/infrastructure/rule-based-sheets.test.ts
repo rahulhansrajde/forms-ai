@@ -116,8 +116,8 @@ describe('rule-based handling of existing Google Sheets', () => {
     const summary = planner.summarize({
       instruction: 'Summarize',
       spreadsheetTitle: 'Leads',
-      table: { range: "'Sheet1'!A1:C4", values: [['Name', 'Email', ''], ['Ada', 'ada@example.com'], ['Alan', '']], totalRows: 3, truncated: false },
+      table: { range: "'Sheet1'!A1:C4", label: 'Sheet1 · 2 rows', values: [['Name', 'Email', ''], ['Ada', 'ada@example.com'], ['Alan', '']], totalRows: 3, truncated: false },
     });
-    expect(summary).toBe('“Leads” has 2 rows below the header row in \'Sheet1\'!A1:C4. Values per column: Name: 2 filled, Email: 1 filled, C: 0 filled.');
+    expect(summary).toBe('“Leads” has 2 rows below the header row in Sheet1. Values per column: Name: 2 filled, Email: 1 filled, C: 0 filled.');
   });
 });

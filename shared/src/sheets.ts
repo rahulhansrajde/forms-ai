@@ -19,6 +19,7 @@ export const SHEET_OPERATION_TYPES = [
   'SET_FORMULA',
   'UPDATE_SPREADSHEET_TITLE',
   'LINK_EXISTING_SPREADSHEET',
+  'UPDATE_RECORD',
 ] as const;
 
 export type SheetOperationType = (typeof SHEET_OPERATION_TYPES)[number];
@@ -48,6 +49,7 @@ export interface ReadRangeOperation {
   sheet?: string;
   range: string;
   summarize?: boolean;
+  explicitRange?: boolean;
 }
 
 export interface WriteRangeOperation {
@@ -160,6 +162,32 @@ export interface LinkExistingSpreadsheetOperation {
   tabs: string[];
 }
 
+export interface RecordFieldChange {
+  column: string;
+  value: string;
+  from?: string;
+}
+
+export interface ResolvedRecordChange {
+  column: string;
+  from: string;
+  to: string;
+}
+
+export interface RecordTarget {
+  row: number;
+  label: string;
+  changes: ResolvedRecordChange[];
+}
+
+export interface UpdateRecordOperation {
+  type: 'UPDATE_RECORD';
+  sheet?: string;
+  match: { column?: string; value: string };
+  changes: RecordFieldChange[];
+  target?: RecordTarget;
+}
+
 export type SheetOperation =
   | CreateSpreadsheetOperation
   | GetSpreadsheetOperation
@@ -179,7 +207,8 @@ export type SheetOperation =
   | SetHeaderRowOperation
   | SetFormulaOperation
   | UpdateSpreadsheetTitleOperation
-  | LinkExistingSpreadsheetOperation;
+  | LinkExistingSpreadsheetOperation
+  | UpdateRecordOperation;
 
 export const SHEET_ACTION_KINDS = ['CREATE', 'MODIFY', 'READ', 'LINK'] as const;
 
@@ -209,11 +238,23 @@ export const SHEET_LIMITS = {
   maxPixelSize: 1000,
 } as const;
 
-export interface SheetTableView {
+export interface SheetTableData {
   range: string;
   values: string[][];
   totalRows: number;
   truncated: boolean;
+  explicitRange?: boolean;
+}
+
+export interface SheetTableView extends SheetTableData {
+  label: string;
+}
+
+export interface SheetActionStep {
+  text: string;
+  done: string;
+  change: { from: string; to: string } | null;
+  note?: string;
 }
 
 export interface SheetActionView {
@@ -222,7 +263,7 @@ export interface SheetActionView {
   status: SheetActionStatus;
   spreadsheetTitle: string;
   summary: string;
-  steps: string[];
+  steps: SheetActionStep[];
   destructive: boolean;
   spreadsheetUrl: string | null;
   spreadsheetOrigin: SpreadsheetOrigin | null;

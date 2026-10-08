@@ -1,4 +1,4 @@
-import { SHEET_LIMITS, type CreateSpreadsheetOperation, type SheetOperation, type SheetTableView } from '@forms-ai/contracts';
+import { SHEET_LIMITS, type CreateSpreadsheetOperation, type SheetOperation, type SheetTableData } from '@forms-ai/contracts';
 import type { SheetAction } from '../../../domain/entities/sheet-action.js';
 import { Spreadsheet, type SpreadsheetTab } from '../../../domain/entities/spreadsheet.js';
 import type { SheetActionRepository, SpreadsheetRepository } from '../../../domain/interfaces/repositories.js';
@@ -8,13 +8,14 @@ import type { ExecutionStep, SheetOperationResolver } from '../../../domain/serv
 import { NotFoundError, ValidationError } from '../../../shared/errors/application-errors.js';
 import type { SpreadsheetReferenceParser } from '../../../domain/services/spreadsheet-reference-parser.js';
 import type { SheetActionVerifier, WrittenRange } from './sheet-action-verifier.js';
+import type { SheetRecordService } from './sheet-record-service.js';
 import type { SpreadsheetAccessChecker } from './spreadsheet-access-checker.js';
 import type { SpreadsheetInspector } from './spreadsheet-inspector.js';
 
 export interface SheetExecutionOutcome {
   action: SheetAction;
   spreadsheet: Spreadsheet;
-  table: SheetTableView | null;
+  table: SheetTableData | null;
 }
 
 interface RunState {
@@ -22,7 +23,7 @@ interface RunState {
   tabs: SpreadsheetTabSnapshot[];
   pending: StructuralChange[];
   writes: WrittenRange[];
-  table: SheetTableView | null;
+  table: SheetTableData | null;
   inspect: boolean;
 }
 
@@ -41,6 +42,7 @@ export class SheetActionExecutor {
     private readonly clock: Clock,
     private readonly access: SpreadsheetAccessChecker,
     private readonly references: SpreadsheetReferenceParser,
+    private readonly records: SheetRecordService,
   ) {}
 
   async execute(accessToken: string, action: SheetAction): Promise<SheetExecutionOutcome> {
@@ -72,6 +74,13 @@ export class SheetActionExecutor {
     if (POSITION_SHIFTING_OPERATIONS.has(operation.type)) {
       state.writes = [];
     }
+    if (operation.type === 'UPDATE_RECORD') {
+      await this.flush(accessToken, state);
+      for (const write of await this.records.locateForWrite(accessToken, state.googleSpreadsheetId, state.tabs, operation)) {
+        await this.perform(accessToken, { kind: 'WRITE', range: write.range, values: [[write.value]], mode: 'RAW' }, state);
+      }
+      return;
+    }
     for (const step of this.resolver.resolve(operation, state.tabs)) {
       if (step.kind === 'STRUCTURE') {
         state.pending.push(step.change);
@@ -79,6 +88,9 @@ export class SheetActionExecutor {
         await this.flush(accessToken, state);
         await this.perform(accessToken, step, state);
       }
+    }
+    if (operation.type === 'READ_RANGE' && state.table && operation.explicitRange) {
+      state.table = { ...state.table, explicitRange: true };
     }
     if (this.resolver.changesTabs(operation)) {
       await this.flush(accessToken, state);
@@ -210,7 +222,7 @@ export class SheetActionExecutor {
     });
   }
 
-  private boundedTable(range: string, values: string[][]): SheetTableView {
+  private boundedTable(range: string, values: string[][]): SheetTableData {
     const rows = values.slice(0, SHEET_LIMITS.maxReadRows).map((row) => row.slice(0, SHEET_LIMITS.maxReadColumns));
     const widest = Math.max(0, ...values.map((row) => row.length));
     return {
@@ -221,7 +233,7 @@ export class SheetActionExecutor {
     };
   }
 
-  private structureTable(tabs: readonly SpreadsheetTab[]): SheetTableView {
+  private structureTable(tabs: readonly SpreadsheetTab[]): SheetTableData {
     return {
       range: 'Spreadsheet structure',
       values: [['Tab', 'Rows', 'Columns', 'Header row'], ...tabs.map((tab) => [tab.title, String(tab.rowCount), String(tab.columnCount), tab.headers.join(', ')])],

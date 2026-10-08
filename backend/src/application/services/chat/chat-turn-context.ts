@@ -2,6 +2,7 @@ import type { ChatIntent } from '@forms-ai/contracts';
 import type { Conversation } from '../../../domain/entities/conversation.js';
 import type { FormDraft } from '../../../domain/entities/form-draft.js';
 import type { FormVersion } from '../../../domain/entities/form-version.js';
+import type { SheetRecordContext } from '../../../domain/entities/sheet-record-context.js';
 import type { Spreadsheet } from '../../../domain/entities/spreadsheet.js';
 import type { SuggestionSet } from '../../../domain/entities/suggestion-set.js';
 import type { AIConversationContext } from '../../../domain/interfaces/ai-provider.js';
@@ -13,6 +14,7 @@ export interface ChatTurnContext {
   currentVersion: FormVersion | null;
   openSuggestions: SuggestionSet | null;
   spreadsheet: Spreadsheet | null;
+  sheetRecords: SheetRecordContext | null;
   ai: AIConversationContext;
 }
 

@@ -3,15 +3,12 @@ import type { Spreadsheet } from '../../../domain/entities/spreadsheet.js';
 import { Message } from '../../../domain/entities/message.js';
 import type { ConversationRepository, MessageRepository } from '../../../domain/interfaces/repositories.js';
 import type { Clock, IdentifierGenerator } from '../../../domain/interfaces/system.js';
+import type { SheetOperationDescriber } from '../../../domain/services/sheet-operation-describer.js';
 
 const STRUCTURE_RANGE = 'Spreadsheet structure';
 
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
-function readableRange(range: string): string {
-  return range.replace(/^'(.*)'!/, (_match, title: string) => `${title.replace(/''/g, "'")}, `);
 }
 
 export class SheetResultAnnouncer {
@@ -20,6 +17,7 @@ export class SheetResultAnnouncer {
     private readonly conversations: ConversationRepository,
     private readonly identifiers: IdentifierGenerator,
     private readonly clock: Clock,
+    private readonly describer: SheetOperationDescriber,
   ) {}
 
   async announceSuccess(action: SheetAction, spreadsheet: Spreadsheet, summary: string | null = null): Promise<Message> {
@@ -39,13 +37,13 @@ export class SheetResultAnnouncer {
       case 'LINK':
         return `Google Sheet connected successfully. “${spreadsheet.title}” is now the active spreadsheet in this chat (tabs: ${spreadsheet.tabs.map((tab) => tab.title).join(', ') || 'none'}).`;
       case 'MODIFY':
-        return `Google Sheet updated successfully. ${action.summary}`;
+        return `Google Sheet updated successfully. ${this.describer.resultSentence(action.steps ?? this.describer.describeAll(action.operations, spreadsheet.tabs))}`;
       case 'READ':
         if (table?.range === STRUCTURE_RANGE) {
           return `“${spreadsheet.title}” has ${plural(table.values.length - 1, 'tab')}. The table below shows each tab with its size and header row from Google Sheets.`;
         }
         return table
-          ? `Here is the data from “${spreadsheet.title}” (${readableRange(table.range)}): ${plural(table.totalRows, 'row')}${table.truncated ? `, showing the first ${table.values.length}` : ''}. The table below shows the exact values from Google Sheets.`
+          ? `Here is the data from “${spreadsheet.title}”: ${this.describer.tableSummary(table)}. The table below shows the exact values from Google Sheets.`
           : `Read “${spreadsheet.title}”.`;
     }
   }

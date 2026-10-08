@@ -127,7 +127,19 @@ export function SheetActionCard({ action, conversationId, onResult }: SheetActio
       ) : action.steps.length > 0 ? (
         <ol className={styles.steps}>
           {action.steps.map((step, index) => (
-            <li key={index}>{step}</li>
+            <li key={index}>
+              <span>{step.text}</span>
+              {step.note ? <span className={styles.stepNote}>{step.note}</span> : null}
+              {step.change ? (
+                <span className={styles.change}>
+                  <span className="visually-hidden">from </span>
+                  <span className={styles.from}>{step.change.from || 'empty'}</span>
+                  <span aria-hidden="true"> → </span>
+                  <span className="visually-hidden"> to </span>
+                  <span className={styles.to}>{step.change.to}</span>
+                </span>
+              ) : null}
+            </li>
           ))}
         </ol>
       ) : null}
@@ -168,7 +180,10 @@ export function SheetActionCard({ action, conversationId, onResult }: SheetActio
         <p>These changes to “{action.spreadsheetTitle}” remove data:</p>
         <ul className={styles.modalSteps}>
           {action.steps.map((step, index) => (
-            <li key={index}>{step}</li>
+            <li key={index}>
+              {step.text}
+              {step.note ? <span className={styles.stepNote}>{step.note}</span> : null}
+            </li>
           ))}
         </ul>
         <p className={styles.hint}>You can bring earlier data back from File › Version history in Google Sheets.</p>

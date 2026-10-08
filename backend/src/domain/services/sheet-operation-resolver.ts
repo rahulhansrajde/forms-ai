@@ -26,6 +26,8 @@ export class SheetOperationResolver {
         throw new ValidationError('A spreadsheet can only be created once per action.');
       case 'LINK_EXISTING_SPREADSHEET':
         throw new ValidationError('A spreadsheet can only be connected by a connect action.');
+      case 'UPDATE_RECORD':
+        throw new ValidationError('A record can only be updated after it has been found in the spreadsheet data.');
       case 'GET_SPREADSHEET':
         return [{ kind: 'INSPECT' }];
       case 'READ_RANGE':

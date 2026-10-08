@@ -92,6 +92,18 @@ function existingSheets(): FakeSheetsGateway {
     },
     { title: 'Analytics', values: [] },
   ]);
+  sheets.seed('1StudentRegistrationE2E000000000000000000', 'Forms AI Student Registration', [
+    {
+      title: 'Students',
+      values: [
+        ['Student ID', 'Name', 'Email', 'Department', 'College', 'Year'],
+        ['STU001', 'Rahul', 'rahul@example.com', 'ECE', 'ABC College', '3rd Year'],
+        ['STU002', 'Priya', 'priya@example.com', 'CSE', 'XYZ College', '2nd Year'],
+        ['STU003', 'Ananya', 'ananya1@example.com', 'CSE', 'ABC College', '2nd Year'],
+        ['STU004', 'Ananya', 'ananya2@example.com', 'IT', 'XYZ College', '4th Year'],
+      ],
+    },
+  ]);
   return sheets;
 }
 

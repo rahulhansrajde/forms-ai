@@ -233,8 +233,9 @@ describe('Google Sheets actions', () => {
       ],
       totalRows: 2,
       truncated: false,
+      label: 'Sheet1 · 1 data row · header row included',
     });
-    expect(response.body.message.content).toContain('Here is the data from “Event Leads” (Sheet1, A1:C6): 2 rows.');
+    expect(response.body.message.content).toContain('Here is the data from “Event Leads”: 1 data row from “Sheet1” (header row included).');
     expect(response.body.message.sheetAction.table.values).toHaveLength(2);
 
     const structure = await propose(signedIn, conversationId, 'How many tabs does the spreadsheet have?');

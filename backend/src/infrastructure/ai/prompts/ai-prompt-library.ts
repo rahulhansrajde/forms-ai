@@ -45,11 +45,12 @@ export class AIPromptLibrary {
     return [
       PRODUCT_RULES,
       'Translate the request into the smallest list of Google Sheets operations. Only these operation types exist:',
-      'CREATE_SPREADSHEET(title, tabs[{title, headers?, rows?}]), GET_SPREADSHEET, READ_RANGE(sheet?, range, summarize?), WRITE_RANGE(sheet?, range, values), UPDATE_RANGE(sheet?, range, values), APPEND_ROWS(sheet?, values), CLEAR_RANGE(sheet?, range), ADD_SHEET(title), RENAME_SHEET(sheet, newTitle), DELETE_SHEET_TAB(sheet), INSERT_ROWS(sheet?, beforeRow?, count), INSERT_COLUMNS(sheet?, beforeColumn?, count), DELETE_ROWS(sheet?, startRow, count), DELETE_COLUMNS(sheet?, startColumn, count), UPDATE_CELL_FORMAT(sheet?, range, bold?, italic?, backgroundColor?, textColor?, horizontalAlignment?), UPDATE_DIMENSION_SIZE(sheet?, dimension, start, count, pixelSize), SET_HEADER_ROW(sheet?, headers), SET_FORMULA(sheet?, cell, formula), UPDATE_SPREADSHEET_TITLE(title).',
+      'CREATE_SPREADSHEET(title, tabs[{title, headers?, rows?}]), GET_SPREADSHEET, READ_RANGE(sheet?, range, summarize?), WRITE_RANGE(sheet?, range, values), UPDATE_RANGE(sheet?, range, values), APPEND_ROWS(sheet?, values), CLEAR_RANGE(sheet?, range), ADD_SHEET(title), RENAME_SHEET(sheet, newTitle), DELETE_SHEET_TAB(sheet), INSERT_ROWS(sheet?, beforeRow?, count), INSERT_COLUMNS(sheet?, beforeColumn?, count), DELETE_ROWS(sheet?, startRow, count), DELETE_COLUMNS(sheet?, startColumn, count), UPDATE_CELL_FORMAT(sheet?, range, bold?, italic?, backgroundColor?, textColor?, horizontalAlignment?), UPDATE_DIMENSION_SIZE(sheet?, dimension, start, count, pixelSize), SET_HEADER_ROW(sheet?, headers), SET_FORMULA(sheet?, cell, formula), UPDATE_SPREADSHEET_TITLE(title), UPDATE_RECORD(sheet?, match{column?, value}, changes[{column, value, from?}]).',
       scope,
       'sheet is a tab title from the current spreadsheet; omit it to use the first tab. Ranges use A1 notation without the tab name, for example A1:D20. Rows are 1-based and columns are letters.',
       'Never invent data. Only write values the user explicitly gave you, or generated sample data when the user explicitly asks for sample data. Creating columns means headers only, with no rows.',
       'To add a column after an existing one, use INSERT_COLUMNS before the next column and WRITE_RANGE for the new header cell in row 1, using the header row of the current spreadsheet.',
+      'To change values in an existing row that the user identifies by a name, ID, email or other value (for example "Change Rahul\'s Year to 4th Year"), use UPDATE_RECORD: match.value is the identifying value without any possessive ending, match.column is the identifying column only when the user names it, and each change names a column header and its new value, with from set only when the user states the old value. When the user refers to the recently discussed record with a pronoun such as his, her or their, set match.value to that pronoun. Never guess row numbers or cell addresses for existing records; Forms AI finds the row in the real data.',
       '"Add 50 rows" means INSERT_ROWS with count 50 and no data. Colors are hex values like #FFF2CC.',
       'summary is one short sentence in the past tense describing the result in plain language, for example "Added a Company column after Email."',
       'If the request is unclear or refers to tabs or columns that do not exist, return no operations and a short clarificationQuestion.',
@@ -60,7 +61,7 @@ export class AIPromptLibrary {
     return [
       PRODUCT_RULES,
       'Summarize the Google Sheets data provided by the user message in plain text, in at most 6 short sentences or bullet lines starting with "- ".',
-      'Use only the values in the table. Never invent, estimate or assume values, rows or columns that are not shown. Mention that only some rows were covered only when the range line says the rows were truncated.',
+      'Use only the values in the table. Never invent, estimate or assume values, rows or columns that are not shown. Mention that only some rows were covered only when the data line says it was truncated. Never mention cell ranges or A1 notation.',
       'Mention counts, totals, ranges, common values or empty cells only when they can be read directly from the table.',
     ].join('\n');
   }
@@ -69,7 +70,7 @@ export class AIPromptLibrary {
     const { table } = request;
     return [
       `Spreadsheet: ${request.spreadsheetTitle}`,
-      `Range: ${table.range} (${table.totalRows} rows${table.truncated ? `, truncated to the first ${table.values.length}` : ''})`,
+      `Data: ${table.label}${table.truncated ? ' (truncated)' : ''}`,
       `Rows as JSON:\n${JSON.stringify(table.values).slice(0, MAX_TABLE_CHARACTERS)}`,
       `Request:\n${request.instruction}`,
     ].join('\n\n');
@@ -129,6 +130,7 @@ export class AIPromptLibrary {
       `Current form draft:\n${context.currentForm ? this.describeForm(context.currentForm) : '(none)'}`,
       `Open suggestions:\n${context.openSuggestions.length > 0 ? this.describeSuggestions(context.openSuggestions) : '(none)'}`,
       `Current Google Sheet:\n${context.currentSpreadsheet ? JSON.stringify(context.currentSpreadsheet) : '(none)'}`,
+      `Recently discussed record:\n${context.recentRecord ? JSON.stringify(context.recentRecord) : '(none)'}`,
     ].join('\n\n');
   }
 

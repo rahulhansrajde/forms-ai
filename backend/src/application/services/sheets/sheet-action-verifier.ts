@@ -49,6 +49,7 @@ const SUPERSEDES: Partial<Record<SheetOperation['type'], readonly Concern[]>> = 
   DELETE_COLUMNS: CONTENT_CHANGES,
   SET_HEADER_ROW: CONTENT_CHANGES,
   SET_FORMULA: CONTENT_CHANGES,
+  UPDATE_RECORD: CONTENT_CHANGES,
 };
 
 export class SheetActionVerifier {

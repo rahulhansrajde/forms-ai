@@ -76,22 +76,196 @@ describe('sheet operation validation', () => {
 });
 
 describe('SheetOperationDescriber', () => {
-  it('describes every step in plain language', () => {
-    const steps = new SheetOperationDescriber().describeAll([
-      { type: 'CREATE_SPREADSHEET', title: 'Leads', tabs: [{ title: 'Sheet1', headers: ['Name', 'Email'], rows: [['Ada', 'a@x.io']] }] },
-      { type: 'DELETE_SHEET_TAB', sheet: 'Old' },
-      { type: 'INSERT_ROWS', count: 1 },
-      { type: 'UPDATE_CELL_FORMAT', range: 'A1:B1', bold: true, backgroundColor: '#FFEEAA' },
-      { type: 'SET_FORMULA', sheet: 'Totals', cell: 'B10', formula: '=SUM(B2:B9)' },
+  const describer = new SheetOperationDescriber(notation);
+  const STUDENTS = [
+    { title: 'Students', headers: ['Student ID', 'Name', 'Email', 'Department', 'College', 'Year'] },
+    { title: 'Summary', headers: ['Department', 'Count'] },
+  ];
+  const texts = (operations: SheetOperation[]) => describer.describeAll(operations, STUDENTS).map((step) => step.text);
+  const A1 = /\b[A-Z]{1,3}\d+(?::[A-Z]{1,3}\d*)?\b/;
+
+  const HEADER = 'Header row included';
+
+  it.each([
+    ['A1:F3', 'Read the first 2 data rows from “Students”', HEADER],
+    ['A1:F4', 'Read the first 3 data rows from “Students”', HEADER],
+    ['A1:F6', 'Read the first 5 data rows from “Students”', HEADER],
+    ['A1:F2', 'Read the first data row from “Students”', HEADER],
+    ['A1:Z21', 'Read the first 20 data rows from “Students”', HEADER],
+    ['A2:F5', 'Read rows 2 to 5 from “Students”', undefined],
+    ['A5:F5', 'Read row 5 from “Students”', undefined],
+    ['F2', 'Read the “Year” value in row 2 from “Students”', undefined],
+    ['F1', 'Read the “Year” header from “Students”', undefined],
+    ['D2:D', 'Read the “Department” values from “Students”', undefined],
+    ['D3:D', 'Read the “Department” values from row 3 onward from “Students”', undefined],
+    ['D2:D10', 'Read the “Department” values in rows 2 to 10 from “Students”', undefined],
+    ['D1:D10', 'Read the first 9 “Department” values from “Students”', HEADER],
+    ['D1:D2', 'Read the first “Department” value from “Students”', HEADER],
+    ['D:D', 'Read the whole “Department” column from “Students”', undefined],
+    ['D1:D', 'Read the whole “Department” column from “Students”', undefined],
+    ['A1:F1', 'Read the header row from “Students”', undefined],
+    ['1:1', 'Read the header row from “Students”', undefined],
+    ['B1:C1', 'Read the “Name” and “Email” headers from “Students”', undefined],
+    ['2:5', 'Read rows 2 to 5 from “Students”', undefined],
+    ['A2:F', 'Read every row below the header from “Students”', undefined],
+    ['A10:F', 'Read every row from row 10 onward from “Students”', undefined],
+    ['A:F', 'Read every data row from “Students”', HEADER],
+    ['A1:F', 'Read every data row from “Students”', HEADER],
+    ['B1:C4', 'Read the first 3 data rows of the “Name” and “Email” columns from “Students”', HEADER],
+    ['B2:D9', 'Read rows 2 to 9 of the “Name” to “Department” columns from “Students”', undefined],
+  ])('describes reading %s semantically', (range, text, note) => {
+    const [step] = describer.describeAll([{ type: 'READ_RANGE', sheet: 'Students', range }], STUDENTS);
+    expect(step?.text).toBe(text);
+    expect(step?.note).toBe(note);
+    expect(step?.text).not.toMatch(A1);
+  });
+
+  it('counts physical rows when the tab has no header row', () => {
+    const [step] = describer.describeAll([{ type: 'READ_RANGE', sheet: 'Blank', range: 'A1:C4' }], [{ title: 'Blank', headers: [] }]);
+    expect(step).toEqual({ text: 'Read the first 4 rows from “Blank”', done: 'Read the first 4 rows from “Blank”', change: null });
+  });
+
+  it('keeps the user’s data-row count for “the first N rows” plans', () => {
+    const [step] = describer.describeAll([{ type: 'READ_RANGE', sheet: 'Students', range: 'A1:F4' }], STUDENTS);
+    expect(step).toEqual({
+      text: 'Read the first 3 data rows from “Students”',
+      done: 'Read the first 3 data rows from “Students”',
+      change: null,
+      note: 'Header row included',
+    });
+    expect(describer.resultSentence([step!])).toBe('Read the first 3 data rows from “Students” (header row included).');
+  });
+
+  it('describes other reads and summaries', () => {
+    expect(texts([{ type: 'READ_RANGE', sheet: 'Students', range: 'A1:F4', summarize: true }, { type: 'GET_SPREADSHEET' }])).toEqual([
+      'Read the first 3 data rows from “Students” and summarize them',
+      'Look up the tabs and columns of the spreadsheet',
+    ]);
+  });
+
+  it('keeps a range the user asked for explicitly', () => {
+    expect(texts([{ type: 'READ_RANGE', sheet: 'Students', range: 'A1:F6', explicitRange: true }])).toEqual(['Read A1:F6 from “Students”']);
+  });
+
+  it('describes writes, appends and clears semantically', () => {
+    const steps = texts([
+      { type: 'WRITE_RANGE', sheet: 'Summary', range: 'A2:B5', values: [['CSE', '2'], ['ECE', '1'], ['ME', '1'], ['Total', '4']] },
+      { type: 'APPEND_ROWS', sheet: 'Students', values: [['STU010', 'Kiran', 'kiran@example.com', 'ECE', 'ABC', '1st Year']] },
+      { type: 'APPEND_ROWS', sheet: 'Summary', values: [['IT', '3'], ['EEE', '2']] },
+      { type: 'WRITE_RANGE', sheet: 'Students', range: 'F2', values: [['4th Year']] },
+      { type: 'WRITE_RANGE', sheet: 'Students', range: 'C1', values: [['Email Address']] },
+      { type: 'CLEAR_RANGE', sheet: 'Students', range: 'D2:D' },
+      { type: 'CLEAR_RANGE', sheet: 'Students', range: 'A2:F40' },
     ]);
     expect(steps).toEqual([
-      'Create the spreadsheet “Leads”',
-      'Add the tab “Sheet1” with columns Name, Email and 1 row of data',
-      'Delete the tab “Old” and everything in it',
-      'Add 1 empty row at the end',
-      'Format A1:B1: bold, background #FFEEAA',
-      'Set B10 to the formula =SUM(B2:B9) on “Totals”',
+      'Write 4 rows of data to “Summary” (rows 2 to 5)',
+      'Add Kiran\'s record to “Students”',
+      'Add 2 rows to “Summary”',
+      'Set “Year” in row 2 to “4th Year” on “Students”',
+      'Rename the “Email” column to “Email Address” on “Students”',
+      'Clear the “Department” values from “Students”',
+      'Clear rows 2 to 40 from “Students”',
     ]);
+    expect(steps.some((step) => /\b(?:F2|A2:B5|D2:D|A2:F40|C1)\b/.test(step))).toBe(false);
+  });
+
+  it.each<[SheetOperation, string]>([
+    [{ type: 'WRITE_RANGE', sheet: 'Students', range: 'F2', values: [['4th Year']] }, 'Set “Year” in row 2 to “4th Year” on “Students”'],
+    [{ type: 'WRITE_RANGE', sheet: 'Students', range: 'F2:F5', values: [['a'], ['b'], ['c'], ['d']] }, 'Update the “Year” values in rows 2 to 5 on “Students”'],
+    [{ type: 'WRITE_RANGE', sheet: 'Students', range: 'B7', values: [['Kiran', 'k@x.io']] }, 'Update the “Name” and “Email” columns in row 7 on “Students”'],
+    [
+      { type: 'WRITE_RANGE', sheet: 'Students', range: 'A7', values: [['STU010', 'Kiran', 'k@x.io', 'ECE', 'ABC', '1st Year']] },
+      'Write Kiran\'s record to row 7 of “Students”',
+    ],
+    [{ type: 'WRITE_RANGE', sheet: 'Summary', range: 'A1', values: [['Department', 'Count'], ['CSE', '2'], ['ECE', '1']] }, 'Write 2 data rows to “Summary”'],
+    [{ type: 'WRITE_RANGE', sheet: 'Summary', range: 'A1:B1', values: [['Dept', 'Total']] }, 'Update the header row on “Summary”'],
+    [{ type: 'UPDATE_RANGE', sheet: 'Summary', range: 'A2', values: [['CSE', '2']] }, 'Write 1 row of data to “Summary” (row 2)'],
+    [{ type: 'APPEND_ROWS', sheet: 'Summary', values: [['IT', '3']] }, 'Add 1 row to “Summary”'],
+    [{ type: 'CLEAR_RANGE', sheet: 'Students', range: 'A1:F4' }, 'Clear the first 3 data rows from “Students”'],
+    [{ type: 'CLEAR_RANGE', sheet: 'Students', range: 'F2' }, 'Clear the “Year” value in row 2 from “Students”'],
+    [{ type: 'UPDATE_CELL_FORMAT', sheet: 'Students', range: 'A1:F1', bold: true }, 'Format the header row on “Students” (bold)'],
+    [{ type: 'UPDATE_CELL_FORMAT', sheet: 'Students', range: 'C2:C', textColor: '#112233' }, 'Format the “Email” values on “Students” (text color)'],
+    [{ type: 'INSERT_COLUMNS', sheet: 'Students', beforeColumn: 'A', count: 1 }, 'Add a new column before “Student ID” on “Students”'],
+    [{ type: 'INSERT_COLUMNS', sheet: 'Students', beforeColumn: 'F', count: 2 }, 'Add 2 new columns before “Year” on “Students”'],
+    [{ type: 'INSERT_COLUMNS', sheet: 'Students', count: 3 }, 'Add 3 empty columns to “Students”'],
+    [{ type: 'INSERT_ROWS', sheet: 'Students', beforeRow: 5, count: 2 }, 'Insert 2 empty rows above row 5 in “Students”'],
+    [{ type: 'DELETE_ROWS', sheet: 'Students', startRow: 4, count: 2 }, 'Delete rows 4 to 5 from “Students”'],
+    [{ type: 'DELETE_ROWS', sheet: 'Students', startRow: 4, count: 1 }, 'Delete row 4 from “Students”'],
+    [{ type: 'DELETE_COLUMNS', sheet: 'Students', startColumn: 'D', count: 2 }, 'Delete the “Department” and “College” columns from “Students”'],
+    [{ type: 'DELETE_COLUMNS', sheet: 'Students', startColumn: 'B', count: 3 }, 'Delete the “Name” to “Department” columns from “Students”'],
+    [{ type: 'UPDATE_DIMENSION_SIZE', sheet: 'Students', dimension: 'COLUMNS', start: 'C', count: 2, pixelSize: 200 }, 'Resize the “Email” and “Department” columns on “Students”'],
+    [{ type: 'UPDATE_DIMENSION_SIZE', sheet: 'Students', dimension: 'ROWS', start: '3', count: 2, pixelSize: 40 }, 'Resize rows 3 to 4 on “Students”'],
+    [{ type: 'SET_FORMULA', sheet: 'Summary', cell: 'B10', formula: '=SUM(B2:B9)' }, 'Add the formula =SUM(B2:B9) to “Count” in row 10 on “Summary”'],
+  ])('describes %j precisely', (operation, text) => {
+    expect(texts([operation])).toEqual([text]);
+  });
+
+  it('uses column names when columns are inserted, deleted, formatted or resized', () => {
+    expect(
+      texts([
+        { type: 'INSERT_COLUMNS', sheet: 'Students', beforeColumn: 'E', count: 1 },
+        { type: 'WRITE_RANGE', sheet: 'Students', range: 'E1', values: [['Phone Number']] },
+        { type: 'INSERT_COLUMNS', sheet: 'Students', beforeColumn: 'E', count: 1 },
+        { type: 'DELETE_COLUMNS', sheet: 'Students', startColumn: 'C', count: 1 },
+        { type: 'UPDATE_CELL_FORMAT', sheet: 'Students', range: '1:1', bold: true, backgroundColor: '#FFF2CC' },
+        { type: 'UPDATE_DIMENSION_SIZE', sheet: 'Students', dimension: 'COLUMNS', start: 'B', count: 1, pixelSize: 200 },
+        { type: 'ADD_SHEET', title: 'Analytics' },
+        { type: 'DELETE_SHEET_TAB', sheet: 'Summary' },
+      ]),
+    ).toEqual([
+      'Add a “Phone Number” column after “Department” on “Students”',
+      'Add a new column before “College” on “Students”',
+      'Delete the “Email” column from “Students”',
+      'Format the header row on “Students” (bold, background color)',
+      'Resize the “Name” column on “Students”',
+      'Create a new sheet tab called “Analytics”',
+      'Delete the “Summary” tab and everything in it',
+    ]);
+  });
+
+  it('describes record updates with the old and new value', () => {
+    const [step] = describer.describeAll([
+      {
+        type: 'UPDATE_RECORD',
+        sheet: 'Students',
+        match: { column: 'Name', value: 'Rahul' },
+        changes: [{ column: 'Year', value: '4th Year', from: '3rd Year' }],
+        target: { row: 2, label: 'Rahul', changes: [{ column: 'Year', from: '3rd Year', to: '4th Year' }] },
+      },
+    ]);
+    expect(step).toEqual({ text: "Update Rahul's Year", done: "Updated Rahul's Year from “3rd Year” to “4th Year”", change: { from: '3rd Year', to: '4th Year' } });
+  });
+
+  it('summarizes results in the past tense', () => {
+    const steps = describer.describeAll(
+      [
+        { type: 'APPEND_ROWS', sheet: 'Summary', values: [['a'], ['b'], ['c'], ['d']] },
+        { type: 'UPDATE_CELL_FORMAT', sheet: 'Summary', range: 'A1:B1', bold: true },
+        { type: 'ADD_SHEET', title: 'Charts' },
+        { type: 'ADD_SHEET', title: 'Notes' },
+      ],
+      STUDENTS,
+    );
+    expect(describer.resultSentence(steps)).toBe(
+      'Added 4 rows to “Summary”. Formatted the header row on “Summary” (bold). Created a new sheet tab called “Charts”. Plus 1 more change.',
+    );
+  });
+
+  it('labels read results by rows unless a range was requested', () => {
+    const table = { range: "'Students'!A1:F4", values: [['h'], ['1'], ['2'], ['3']], totalRows: 4, truncated: false };
+    expect(describer.tableLabel(table)).toBe('Students · 3 data rows · header row included');
+    expect(describer.tableSummary(table)).toBe('3 data rows from “Students” (header row included)');
+    expect(describer.tableLabel({ ...table, values: [['h'], ['1']], totalRows: 2 })).toBe('Students · 1 data row · header row included');
+    expect(describer.tableLabel({ ...table, values: [['h']], totalRows: 1 })).toBe('Students · header row only');
+    expect(describer.tableSummary({ ...table, values: [['h']], totalRows: 1 })).toBe('only the header row from “Students”');
+    expect(describer.tableLabel({ ...table, range: "'Students'!A2:F5" })).toBe('Students · 4 rows');
+    expect(describer.tableSummary({ ...table, range: "'Students'!A2:F5" })).toBe('4 rows from “Students”');
+    expect(describer.tableLabel({ ...table, explicitRange: true })).toBe('Students · A1:F4');
+    expect(describer.tableSummary({ ...table, explicitRange: true })).toBe('A1:F4 from “Students”');
+    expect(describer.tableLabel({ ...table, totalRows: 451, truncated: true })).toBe('Students · first 3 of 450 data rows · header row included');
+    expect(describer.tableSummary({ ...table, totalRows: 451, truncated: true })).toBe('the first 3 of 450 data rows from “Students” (header row included)');
+    expect(table).toEqual({ range: "'Students'!A1:F4", values: [['h'], ['1'], ['2'], ['3']], totalRows: 4, truncated: false });
+    expect(describer.tableLabel({ ...table, range: 'Spreadsheet structure' })).toBe('All tabs');
   });
 });
 

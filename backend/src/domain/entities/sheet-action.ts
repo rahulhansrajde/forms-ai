@@ -2,13 +2,14 @@ import {
   DESTRUCTIVE_SHEET_OPERATIONS,
   type LinkExistingSpreadsheetOperation,
   type SheetActionKind,
+  type SheetActionStep,
   type SheetActionStatus,
   type SheetOperation,
-  type SheetTableView,
+  type SheetTableData,
 } from '@forms-ai/contracts';
 
 export interface SheetActionResult {
-  table: SheetTableView | null;
+  table: SheetTableData | null;
 }
 
 export interface SheetActionProps {
@@ -22,6 +23,7 @@ export interface SheetActionProps {
   status: SheetActionStatus;
   result: SheetActionResult | null;
   error: string | null;
+  steps: SheetActionStep[] | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,10 +32,10 @@ export class SheetAction {
   private constructor(private readonly props: SheetActionProps) {}
 
   static prepare(
-    props: Pick<SheetActionProps, 'id' | 'userId' | 'conversationId' | 'spreadsheetId' | 'kind' | 'summary' | 'operations'>,
+    props: Pick<SheetActionProps, 'id' | 'userId' | 'conversationId' | 'spreadsheetId' | 'kind' | 'summary' | 'operations'> & { steps?: SheetActionStep[] | null },
     at: Date,
   ): SheetAction {
-    return new SheetAction({ ...props, status: 'PENDING', result: null, error: null, createdAt: at, updatedAt: at });
+    return new SheetAction({ ...props, steps: props.steps ?? null, status: 'PENDING', result: null, error: null, createdAt: at, updatedAt: at });
   }
 
   static restore(props: SheetActionProps): SheetAction {
@@ -78,6 +80,10 @@ export class SheetAction {
 
   get error(): string | null {
     return this.props.error;
+  }
+
+  get steps(): SheetActionStep[] | null {
+    return this.props.steps;
   }
 
   get createdAt(): Date {

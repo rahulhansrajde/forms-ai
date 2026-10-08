@@ -145,6 +145,17 @@ export const sheetOperationSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ type: z.literal('UPDATE_SPREADSHEET_TITLE'), title: titleSchema }).strict(),
+  z
+    .object({
+      type: z.literal('UPDATE_RECORD'),
+      sheet: sheetReferenceSchema,
+      match: z.object({ column: titleSchema.optional(), value: z.string().trim().min(1).max(200) }).strict(),
+      changes: z
+        .array(z.object({ column: titleSchema, value: cellValueSchema, from: cellValueSchema.optional() }).strict())
+        .min(1)
+        .max(SHEET_LIMITS.maxWriteColumns),
+    })
+    .strict(),
 ]);
 
 export const sheetOperationListSchema = z.array(sheetOperationSchema).max(SHEET_LIMITS.maxOperations);

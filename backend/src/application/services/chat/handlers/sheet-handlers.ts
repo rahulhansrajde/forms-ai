@@ -1,12 +1,14 @@
-import type { ChatIntent, SheetPlanKind } from '@forms-ai/contracts';
+import type { ChatIntent, SheetOperation, SheetPlanKind } from '@forms-ai/contracts';
 import { SheetAction } from '../../../../domain/entities/sheet-action.js';
 import type { SheetActionRepository, SpreadsheetRepository } from '../../../../domain/interfaces/repositories.js';
 import type { Clock, IdentifierGenerator } from '../../../../domain/interfaces/system.js';
+import type { SheetOperationDescriber } from '../../../../domain/services/sheet-operation-describer.js';
 import type { SpreadsheetReferenceParser } from '../../../../domain/services/spreadsheet-reference-parser.js';
 import { GoogleOAuthError, GoogleSheetsError } from '../../../../shared/errors/application-errors.js';
 import type { GoogleCredentialService } from '../../google/google-credential-service.js';
 import type { ClarificationMessages } from '../../intent/clarification-messages.js';
 import type { SheetPlanningService } from '../../sheets/sheet-planning-service.js';
+import type { SheetRecordService } from '../../sheets/sheet-record-service.js';
 import type { SpreadsheetAccessChecker } from '../../sheets/spreadsheet-access-checker.js';
 import type { ChatTurnContext, IntentDecision, IntentOutcome } from '../chat-turn-context.js';
 import { replyOnly, type IntentHandler } from './intent-handler.js';
@@ -15,6 +17,8 @@ export interface SheetHandlerCollaborators {
   planner: SheetPlanningService;
   actions: SheetActionRepository;
   clarifications: ClarificationMessages;
+  describer: SheetOperationDescriber;
+  records: SheetRecordService;
   identifiers: IdentifierGenerator;
   clock: Clock;
 }
@@ -33,14 +37,42 @@ export class SheetActionHandler implements IntentHandler {
   ) {}
 
   async handle(message: string, _decision: IntentDecision, context: ChatTurnContext): Promise<IntentOutcome> {
-    const { planner, actions, clarifications, identifiers, clock } = this.collaborators;
+    const { planner, clarifications, records } = this.collaborators;
     if (this.kind !== 'CREATE' && !context.spreadsheet) {
       return replyOnly('CLARIFICATION_REQUIRED', clarifications.noSpreadsheet());
+    }
+    if (this.kind === 'MODIFY') {
+      const direct = await records.prepareFromMessage(message, context);
+      if (direct?.kind === 'reply') {
+        return replyOnly(direct.intent, direct.text);
+      }
+      if (direct?.kind === 'ready') {
+        return this.propose([direct.operation], `Updated ${direct.operation.target?.label ?? 'the record'}.`, [direct.note], context);
+      }
     }
     const plan = await planner.plan(this.kind, message, context.ai);
     if (plan.kind === 'clarify') {
       return replyOnly('CLARIFICATION_REQUIRED', plan.question);
     }
+    const operations: SheetOperation[] = [];
+    const notes: string[] = [];
+    for (const operation of plan.operations) {
+      if (operation.type !== 'UPDATE_RECORD') {
+        operations.push(operation);
+        continue;
+      }
+      const prepared = await records.prepareOperation(operation, context);
+      if (prepared.kind === 'reply') {
+        return replyOnly(prepared.intent, prepared.text);
+      }
+      operations.push(prepared.operation);
+      notes.push(prepared.note);
+    }
+    return this.propose(operations, plan.summary, notes, context);
+  }
+
+  private async propose(operations: SheetOperation[], summary: string, notes: readonly string[], context: ChatTurnContext): Promise<IntentOutcome> {
+    const { actions, describer, identifiers, clock } = this.collaborators;
     const action = SheetAction.prepare(
       {
         id: identifiers.generate(),
@@ -48,23 +80,26 @@ export class SheetActionHandler implements IntentHandler {
         conversationId: context.conversation.id,
         spreadsheetId: this.kind === 'CREATE' ? null : (context.spreadsheet?.id ?? null),
         kind: this.kind,
-        summary: plan.summary,
-        operations: plan.operations,
+        summary,
+        operations,
+        steps: describer.describeAll(operations, context.spreadsheet?.tabs ?? []),
       },
       clock.now(),
     );
     await actions.insert(action);
-    return { intent: this.intent, reply: this.reply(action, context), changedDraft: null, sheetActionId: action.id };
+    return { intent: this.intent, reply: this.reply(action, context, notes), changedDraft: null, sheetActionId: action.id };
   }
 
-  private reply(action: SheetAction, context: ChatTurnContext): string {
+  private reply(action: SheetAction, context: ChatTurnContext, notes: readonly string[]): string {
     const button = BUTTON_LABELS[this.kind];
     const warning = action.isDestructive() ? ' This removes data, so you will be asked to confirm.' : '';
     switch (this.kind) {
       case 'CREATE':
         return `I prepared the Google Sheet “${action.plannedTitle() ?? 'Untitled spreadsheet'}”. Review the steps below and click ${button} when it looks right. Nothing is created until you do.`;
       case 'MODIFY':
-        return `I prepared these changes to “${context.spreadsheet?.title ?? 'your Google Sheet'}”. Click ${button} to update the Google Sheet.${warning}`;
+        return notes.length > 0
+          ? `${notes.join(' ')} Click ${button} to update the Google Sheet.${warning}`
+          : `I prepared these changes to “${context.spreadsheet?.title ?? 'your Google Sheet'}”. Click ${button} to update the Google Sheet.${warning}`;
       case 'READ':
         return `Click ${button} to fetch the data from “${context.spreadsheet?.title ?? 'your Google Sheet'}”.`;
     }

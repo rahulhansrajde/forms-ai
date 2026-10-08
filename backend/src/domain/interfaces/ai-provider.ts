@@ -12,11 +12,18 @@ export interface SpreadsheetContext {
   tabs: Array<{ title: string; rowCount: number; columnCount: number; headers: string[] }>;
 }
 
+export interface RecentRecordContext {
+  label: string;
+  tab: string;
+  identifiers: Record<string, string>;
+}
+
 export interface AIConversationContext {
   recentTurns: ConversationTurn[];
   currentForm: FormSchema | null;
   openSuggestions: SuggestedQuestion[];
   currentSpreadsheet?: SpreadsheetContext | null;
+  recentRecord?: RecentRecordContext | null;
 }
 
 export interface SheetPlanRequest {

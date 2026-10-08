@@ -22,19 +22,20 @@ export class SheetActionViewService {
   }
 
   describe(action: SheetAction, spreadsheet: Spreadsheet | null): SheetActionView {
+    const table = action.result?.table ?? null;
     return {
       id: action.id,
       kind: action.kind,
       status: action.status,
       spreadsheetTitle: spreadsheet?.title ?? action.plannedTitle() ?? FALLBACK_TITLE,
       summary: action.summary,
-      steps: this.describer.describeAll(action.operations),
+      steps: action.steps ?? this.describer.describeAll(action.operations, spreadsheet?.tabs ?? []),
       destructive: action.isDestructive(),
       spreadsheetUrl: spreadsheet?.url ?? null,
       spreadsheetOrigin: spreadsheet?.origin ?? null,
       tabs: spreadsheet ? spreadsheet.tabs.map((tab) => tab.title) : (action.linkTarget()?.tabs ?? []),
       error: action.error,
-      table: action.result?.table ?? null,
+      table: table ? { ...table, label: this.describer.tableLabel(table) } : null,
       updatedAt: action.updatedAt.toISOString(),
     };
   }

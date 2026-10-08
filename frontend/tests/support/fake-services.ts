@@ -9,6 +9,7 @@ import type {
   PublicationView,
   PublishResult,
   SendMessageResult,
+  SheetActionStep,
   SheetActionView,
   UserView,
 } from '@forms-ai/contracts';
@@ -65,6 +66,10 @@ export function draftView(overrides: Partial<DraftView> = {}): DraftView {
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
+}
+
+export function step(text: string, change: { from: string; to: string } | null = null): SheetActionStep {
+  return { text, done: text, change };
 }
 
 export function message(role: MessageView['role'], content: string, overrides: Partial<MessageView> = {}): MessageView {
@@ -130,7 +135,7 @@ export function createFakeServices(options: { authenticated?: boolean } = {}) {
     status: 'PENDING',
     spreadsheetTitle: 'Event Leads',
     summary: 'Create the spreadsheet.',
-    steps: ['Create the spreadsheet “Event Leads”', 'Add the tab “Sheet1” with columns Name, Email'],
+    steps: [step('Create the spreadsheet “Event Leads”'), step('Add the tab “Sheet1” with columns Name, Email')],
     destructive: false,
     spreadsheetUrl: null,
     spreadsheetOrigin: null,

@@ -391,14 +391,15 @@ test('journey 8: create, change and read a Google Sheet only through explicit bu
   await expect(change.getByText('Removes data')).toBeVisible();
   await change.getByRole('button', { name: 'Apply changes' }).click();
   const dialog = page.getByRole('dialog', { name: 'Remove data from Google Sheets?' });
-  await expect(dialog).toContainText('Clear the values in B2:B');
+  await expect(dialog).toContainText('Email');
+  await expect(dialog).not.toContainText('B2:B');
   await dialog.getByRole('button', { name: 'Yes, apply changes' }).click();
   await expect(change.getByText('Changes applied')).toBeVisible();
 
   await sendMessage(page, 'Show me the first 5 rows');
   const read = log.getByRole('region', { name: 'Read from “Event Leads”' });
   await read.getByRole('button', { name: 'Read sheet' }).click();
-  const table = log.getByRole('region', { name: 'Values from Sheet1 · A1:C6' });
+  const table = log.getByRole('region', { name: 'Values from Sheet1 · header row only' });
   await expect(table.getByRole('columnheader')).toHaveText(['Name', 'Email', 'Phone']);
 
   const conversationUrl = page.url();
@@ -407,7 +408,7 @@ test('journey 8: create, change and read a Google Sheet only through explicit bu
     for (const width of [320, 390, 1280]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto(conversationUrl);
-      await expect(page.getByRole('region', { name: 'Values from Sheet1 · A1:C6' })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Values from Sheet1 · header row only' })).toBeVisible();
       await expectToFit(page, `${theme} sheets conversation`);
     }
   }
@@ -441,7 +442,7 @@ test('journey 9: link an existing Google Sheet by URL and work on it', async ({ 
 
   await sendMessage(page, 'Read the first 20 rows');
   await log.getByRole('region', { name: 'Read from “Hackathon Registrations”' }).getByRole('button', { name: 'Read sheet' }).click();
-  const table = log.getByRole('region', { name: 'Values from Registrations · A1:C21' });
+  const table = log.getByRole('region', { name: 'Values from Registrations · 2 data rows · header row included' });
   await expect(table.getByRole('columnheader')).toHaveText(['Name', 'Email', 'College']);
   await expect(table.getByRole('cell', { name: 'Alan Turing' })).toBeVisible();
 
@@ -463,6 +464,57 @@ test('journey 9: link an existing Google Sheet by URL and work on it', async ({ 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('region', { name: 'Google Sheet found' }).scrollIntoViewIfNeeded();
   await capture(page, 'test-results/screens/linked-sheet-mobile-dark.png');
+});
+
+test('journey 10: update a student by name and ask for an ID when names repeat', async ({ page }) => {
+  test.setTimeout(120_000);
+  await signUp(page);
+  await page.goto('/auth/google?returnTo=/settings');
+  await expect(page.getByRole('list', { name: 'Google permissions' }).getByText('Allowed')).toHaveCount(2);
+  await page.goto('/chat');
+  await sendMessage(page, 'Use this Google Sheet: https://docs.google.com/spreadsheets/d/1StudentRegistrationE2E000000000000000000/edit');
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await log.getByRole('region', { name: 'Google Sheet found' }).getByRole('button', { name: 'Connect Google Sheet' }).click();
+  await expect(log.getByText('Google Sheet connected successfully.', { exact: false })).toBeVisible();
+
+  await sendMessage(page, 'Change Rahul’s Year from 3rd Year to 4th Year.');
+  await expect(log.getByText('Rahul is Student ID STU001. I found the record and prepared the update.', { exact: false })).toBeVisible();
+  const card = log.getByRole('region', { name: 'Changes to “Forms AI Student Registration”' });
+  const step = card.getByRole('listitem').first();
+  await expect(step).toContainText("Update Rahul's Year");
+  await expect(step).toContainText('3rd Year');
+  await expect(step).toContainText('4th Year');
+  await expect(card).not.toContainText(/\b[A-Z]{1,3}\d+\b/);
+  await card.getByRole('button', { name: 'Apply changes' }).click();
+  await expect(card.getByText('Changes applied')).toBeVisible();
+  await expect(log.getByText('Updated Rahul\'s Year from “3rd Year” to “4th Year”.', { exact: false })).toBeVisible();
+
+  await sendMessage(page, "Change Ananya's Year to 3rd Year.");
+  await expect(log.getByText('I found 2 students named Ananya. Please provide the Student ID or row number.')).toBeVisible();
+  await sendMessage(page, 'Her student id is STU004');
+  await expect(log.getByText('Student ID STU004 is Ananya.', { exact: false })).toBeVisible();
+
+  await sendMessage(page, 'Show me the first 3 rows from Students');
+  await log.getByRole('region', { name: 'Read from “Forms AI Student Registration”' }).getByRole('button', { name: 'Read sheet' }).click();
+  await expect(log.getByRole('region', { name: 'Values from Students · 3 data rows · header row included' })).toBeVisible();
+  const readStep = log.getByRole('region', { name: 'Read from “Forms AI Student Registration”' }).getByRole('listitem');
+  await expect(readStep).toContainText('Read the first 3 data rows from “Students”');
+  await expect(readStep.getByText('Header row included')).toBeVisible();
+  await expect(log.getByText(/A1:/)).toHaveCount(0);
+
+  const conversationUrl = page.url();
+  for (const theme of ['light', 'dark'] as const) {
+    await page.evaluate((value) => localStorage.setItem('forms-ai.theme', value), theme);
+    for (const width of [320, 390, 1280]) {
+      await page.setViewportSize({ width, height: 820 });
+      await page.goto(conversationUrl);
+      await expect(page.getByText("Update Rahul's Year")).toBeVisible();
+      await expectToFit(page, `${theme} record update conversation`);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByText("Update Rahul's Year").scrollIntoViewIfNeeded();
+  await capture(page, 'test-results/screens/record-update-mobile-dark.png');
 });
 
 test('security settings end with the password form and log out stays in the profile menu', async ({ page }) => {

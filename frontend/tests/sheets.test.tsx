@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ApiError } from '../src/services/api-client';
-import { createFakeServices, message } from './support/fake-services';
+import { createFakeServices, message, step } from './support/fake-services';
 import { renderApp } from './support/render-app';
 
 type Fake = ReturnType<typeof createFakeServices>;
@@ -67,7 +67,7 @@ describe('Google Sheets actions in chat', () => {
       ...fake.fixtures.sheetAction,
       kind: 'MODIFY',
       destructive: true,
-      steps: ['Clear the values in B2:B'],
+      steps: [step('Clear the “Email” values from “Event Leads”')],
     };
     proposeInChat(fake, destructive);
     fake.spies.executeSheet.mockResolvedValue({ action: { ...destructive, status: 'SUCCEEDED' }, message: null });
@@ -78,7 +78,7 @@ describe('Google Sheets actions in chat', () => {
     expect(within(card).getByText('Removes data')).toBeInTheDocument();
     await user.click(within(card).getByRole('button', { name: 'Apply changes' }));
     const dialog = await screen.findByRole('dialog', { name: 'Remove data from Google Sheets?' });
-    expect(dialog).toHaveTextContent('Clear the values in B2:B');
+    expect(dialog).toHaveTextContent('Clear the “Email” values from “Event Leads”');
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(fake.spies.executeSheet).not.toHaveBeenCalled();
 
@@ -158,6 +158,7 @@ describe('Google Sheets actions in chat', () => {
         ],
         totalRows: 250,
         truncated: true,
+        label: 'Sheet1 · first 1 of 249 data rows · header row included',
       },
     };
     fake.spies.getConversation.mockResolvedValue({ ...fake.fixtures.detail, id: 'conversation-1' });
@@ -167,11 +168,12 @@ describe('Google Sheets actions in chat', () => {
     });
     renderApp(fake.services, '/chat/conversation-1');
 
-    const region = await screen.findByRole('region', { name: 'Values from Sheet1 · A1:C201' });
+    const region = await screen.findByRole('region', { name: 'Values from Sheet1 · first 1 of 249 data rows · header row included' });
     expect(region).toHaveAttribute('tabindex', '0');
     expect(within(region).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual(['Name', 'Email', 'Phone']);
     expect(within(region).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['Ada', 'ada@example.com', '']);
-    expect(screen.getByText(/showing the first 2 of 250 rows/)).toBeInTheDocument();
+    expect(screen.getByText('Sheet1 · first 1 of 249 data rows · header row included')).toBeInTheDocument();
+    expect(screen.queryByText(/A1:C201/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open sheet' })).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/sheet-1/edit');
   });
 
@@ -242,7 +244,7 @@ describe('linking an existing Google Sheet', () => {
       kind: 'LINK',
       spreadsheetTitle: 'Hackathon Registrations',
       tabs: ['Registrations', 'Analytics'],
-      steps: ['Connect the existing Google Sheet “Hackathon Registrations” to this chat'],
+      steps: [step('Connect the existing Google Sheet “Hackathon Registrations” to this chat')],
       ...overrides,
     };
   }
@@ -298,7 +300,7 @@ describe('linking an existing Google Sheet', () => {
       kind: 'READ',
       status: 'SUCCEEDED',
       spreadsheetUrl: EXISTING_URL,
-      table: { range: "'Registrations'!A1:C3", values: [['Name', 'Email', 'College'], ['Ada', 'ada@example.com', 'Analytical']], totalRows: 2, truncated: false },
+      table: { range: "'Registrations'!A1:C3", label: 'Registrations · 1 data row · header row included', values: [['Name', 'Email', 'College'], ['Ada', 'ada@example.com', 'Analytical']], totalRows: 2, truncated: false },
     };
     fake.spies.getConversation.mockResolvedValue({ ...fake.fixtures.detail, id: 'conversation-1' });
     fake.spies.messages.mockResolvedValue({
@@ -308,6 +310,51 @@ describe('linking an existing Google Sheet', () => {
     renderApp(fake.services, '/chat/conversation-1');
     const result = await screen.findByRole('region', { name: 'Google Sheets result for “Hackathon Registrations”' });
     expect(within(result).getByText('Summary: 1 registration from Analytical.').tagName).toBe('P');
-    expect(within(result).getByRole('region', { name: 'Values from Registrations · A1:C3' })).toBeInTheDocument();
+    expect(within(result).getByRole('region', { name: 'Values from Registrations · 1 data row · header row included' })).toBeInTheDocument();
+  });
+});
+
+describe('record update cards', () => {
+  it('shows the field change instead of cell coordinates', async () => {
+    const fake = createFakeServices();
+    const update: SheetActionView = {
+      ...fake.fixtures.sheetAction,
+      id: 'update-1',
+      kind: 'MODIFY',
+      spreadsheetTitle: 'Forms AI Student Registration',
+      steps: [step("Update Rahul's Year", { from: '3rd Year', to: '4th Year' })],
+    };
+    proposeInChat(fake, update);
+    renderApp(fake.services, '/chat');
+    await send("Change Rahul's Year from 3rd Year to 4th Year.");
+
+    const card = await screen.findByRole('region', { name: 'Changes to “Forms AI Student Registration”' });
+    const [item] = within(card).getAllByRole('listitem');
+    expect(item).toHaveTextContent("Update Rahul's Year");
+    expect(item).toHaveTextContent(/3rd Year\s*→.*4th Year/);
+    expect(item).toHaveTextContent(/from 3rd Year/);
+    expect(card.textContent).not.toMatch(/\b[A-Z]{1,3}\d+\b/);
+  });
+});
+
+describe('read cards', () => {
+  it('keeps the requested data-row count and notes the header row separately', async () => {
+    const fake = createFakeServices();
+    const read: SheetActionView = {
+      ...fake.fixtures.sheetAction,
+      id: 'read-3',
+      kind: 'READ',
+      spreadsheetTitle: 'Forms AI Student Registration',
+      steps: [{ ...step('Read the first 3 data rows from “Students”'), note: 'Header row included' }],
+    };
+    proposeInChat(fake, read);
+    renderApp(fake.services, '/chat');
+    await send('Show me the first 3 rows from the Students sheet.');
+
+    const card = await screen.findByRole('region', { name: 'Read from “Forms AI Student Registration”' });
+    const [item] = within(card).getAllByRole('listitem');
+    expect(within(item!).getByText('Read the first 3 data rows from “Students”')).toBeInTheDocument();
+    expect(within(item!).getByText('Header row included')).toBeInTheDocument();
+    expect(card.textContent).not.toMatch(/A1:|first 4/);
   });
 });

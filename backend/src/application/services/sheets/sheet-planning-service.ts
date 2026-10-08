@@ -21,7 +21,15 @@ export class SheetPlanningService {
       return { kind: 'clarify', question: output.clarificationQuestion ?? DEFAULT_QUESTION };
     }
     this.assertAllowed(kind, operations);
-    return { kind: 'ready', summary: output.summary, operations };
+    return { kind: 'ready', summary: output.summary, operations: operations.map((operation) => this.markExplicitRange(operation, instruction)) };
+  }
+
+  private markExplicitRange(operation: SheetOperation, instruction: string): SheetOperation {
+    if (operation.type !== 'READ_RANGE') {
+      return operation;
+    }
+    const mentioned = new RegExp(`(^|[^A-Z0-9])${operation.range.replace(/[^A-Z0-9:]/g, '')}($|[^A-Z0-9])`).test(instruction.toUpperCase());
+    return mentioned ? { ...operation, explicitRange: true } : operation;
   }
 
   private assertAllowed(kind: SheetPlanKind, operations: readonly SheetOperation[]): void {
@@ -33,6 +41,9 @@ export class SheetPlanningService {
     }
     if (kind === 'MODIFY' && (creations.length > 0 || reads.length > 0)) {
       problems.push('a change plan cannot create or read spreadsheets');
+    }
+    if (kind !== 'MODIFY' && operations.some((operation) => operation.type === 'UPDATE_RECORD')) {
+      problems.push('records can only be updated by a change plan');
     }
     if (kind === 'READ' && reads.length !== operations.length) {
       problems.push('a read plan can only read');

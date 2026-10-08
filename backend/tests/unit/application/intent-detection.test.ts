@@ -11,7 +11,10 @@ import { Conversation } from '../../../src/domain/entities/conversation.js';
 import { FormDraft } from '../../../src/domain/entities/form-draft.js';
 import { FormVersion } from '../../../src/domain/entities/form-version.js';
 import { SuggestionSet } from '../../../src/domain/entities/suggestion-set.js';
+import { HeaderMatcher } from '../../../src/domain/services/header-matcher.js';
+import { RecordRequestParser } from '../../../src/domain/services/record-request-parser.js';
 import { SpreadsheetReferenceParser } from '../../../src/domain/services/spreadsheet-reference-parser.js';
+import { TextNormalizer } from '../../../src/domain/services/text-normalizer.js';
 import type { AIProvider } from '../../../src/domain/interfaces/ai-provider.js';
 import { AIOutputRejectedError } from '../../../src/shared/errors/application-errors.js';
 import { sampleForm } from '../../support/domain-fixtures.js';
@@ -84,12 +87,14 @@ function context(options: { form?: FormSchema; suggestions?: 'pending' | 'confir
     currentVersion: version,
     openSuggestions,
     spreadsheet: null,
+    sheetRecords: null,
     ai: { recentTurns: [], currentForm: options.form ?? null, openSuggestions: openSuggestions?.suggestions ?? [] },
   };
 }
 
 function detector(ai: AIProvider): IntentDetectionService {
   const clarifications = new ClarificationMessages();
+  const text = new TextNormalizer();
   return new IntentDetectionService(
     ai,
     new AIOutputValidator(new AIOutputSanitizer()),
@@ -97,6 +102,7 @@ function detector(ai: AIProvider): IntentDetectionService {
     new IntentStatePolicy(clarifications),
     clarifications,
     new SpreadsheetReferenceParser(),
+    new RecordRequestParser(text, new HeaderMatcher(text)),
   );
 }
 

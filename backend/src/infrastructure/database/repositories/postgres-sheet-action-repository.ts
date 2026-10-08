@@ -1,4 +1,4 @@
-import type { SheetActionKind, SheetActionStatus, SheetOperation } from '@forms-ai/contracts';
+import type { SheetActionKind, SheetActionStatus, SheetActionStep, SheetOperation } from '@forms-ai/contracts';
 import { SheetAction, type SheetActionResult } from '../../../domain/entities/sheet-action.js';
 import type { SheetActionRepository } from '../../../domain/interfaces/repositories.js';
 import type { Database } from '../connection/database.js';
@@ -14,17 +14,18 @@ interface SheetActionRow extends Record<string, unknown> {
   status: SheetActionStatus;
   result: SheetActionResult | null;
   error: string | null;
+  steps: SheetActionStep[] | null;
   created_at: Date;
   updated_at: Date;
 }
 
-const SHEET_ACTION_COLUMNS = 'id, user_id, conversation_id, spreadsheet_id, kind, summary, operations, status, result, error, created_at, updated_at';
+const SHEET_ACTION_COLUMNS = 'id, user_id, conversation_id, spreadsheet_id, kind, summary, operations, status, result, error, steps, created_at, updated_at';
 
 export class PostgresSheetActionRepository implements SheetActionRepository {
   constructor(private readonly database: Database) {}
 
   async insert(action: SheetAction): Promise<void> {
-    await this.database.query(`INSERT INTO sheet_actions (${SHEET_ACTION_COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+    await this.database.query(`INSERT INTO sheet_actions (${SHEET_ACTION_COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
       action.id,
       action.userId,
       action.conversationId,
@@ -35,6 +36,7 @@ export class PostgresSheetActionRepository implements SheetActionRepository {
       action.status,
       action.result === null ? null : JSON.stringify(action.result),
       action.error,
+      action.steps === null ? null : JSON.stringify(action.steps),
       action.createdAt,
       action.updatedAt,
     ]);
@@ -86,6 +88,7 @@ export class PostgresSheetActionRepository implements SheetActionRepository {
       status: row.status,
       result: row.result,
       error: row.error,
+      steps: row.steps,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     });

@@ -100,7 +100,7 @@ export class FakeSheetsGateway implements SheetsGateway {
       tabs: tabs.map((tab, index) => ({
         sheetId: index + 100,
         title: tab.title,
-        rowCount: DEFAULT_ROWS,
+        rowCount: Math.max(DEFAULT_ROWS, tab.values.length + 10),
         columnCount: DEFAULT_COLUMNS,
         cells: new Map(tab.values.flatMap((row, rowIndex) => row.map((value, column): [string, string] => [this.key(rowIndex, column), value]))),
       })),

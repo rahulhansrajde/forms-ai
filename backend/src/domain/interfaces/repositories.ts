@@ -8,6 +8,7 @@ import type { Message } from '../entities/message.js';
 import type { PublishJob } from '../entities/publish-job.js';
 import type { Session } from '../entities/session.js';
 import type { SheetAction } from '../entities/sheet-action.js';
+import type { SheetRecordContext } from '../entities/sheet-record-context.js';
 import type { Spreadsheet } from '../entities/spreadsheet.js';
 import type { SuggestionSet } from '../entities/suggestion-set.js';
 import type { User } from '../entities/user.js';
@@ -92,6 +93,11 @@ export interface SpreadsheetRepository {
   findActiveByConversation(conversationId: string): Promise<Spreadsheet | null>;
   listByConversation(conversationId: string): Promise<Spreadsheet[]>;
   findInConversation(conversationId: string, googleSpreadsheetId: string): Promise<Spreadsheet | null>;
+}
+
+export interface SheetRecordContextRepository {
+  findByConversation(conversationId: string): Promise<SheetRecordContext | null>;
+  save(context: SheetRecordContext): Promise<void>;
 }
 
 export interface SheetActionRepository {

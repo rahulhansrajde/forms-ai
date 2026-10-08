@@ -167,7 +167,7 @@ export class RuleBasedSheetPlanner {
       return `${name.trim() || this.notation.columnLetters(index)}: ${filled} filled`;
     });
     return [
-      `“${request.spreadsheetTitle}” has ${rows.length} row${rows.length === 1 ? '' : 's'} below the header row in ${table.range}${coverage}.`,
+      `“${request.spreadsheetTitle}” has ${rows.length} row${rows.length === 1 ? '' : 's'} below the header row in ${table.label.split(' · ')[0]}${coverage}.`,
       columns.length > 0 ? `Values per column: ${columns.join(', ')}.` : '',
     ]
       .filter((line) => line.length > 0)

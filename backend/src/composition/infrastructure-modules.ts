@@ -13,6 +13,7 @@ import { PostgresFormVersionRepository } from '../infrastructure/database/reposi
 import { PostgresMessageRepository } from '../infrastructure/database/repositories/postgres-message-repository.js';
 import { PostgresPublishJobRepository } from '../infrastructure/database/repositories/postgres-publish-job-repository.js';
 import { PostgresSheetActionRepository } from '../infrastructure/database/repositories/postgres-sheet-action-repository.js';
+import { PostgresSheetRecordContextRepository } from '../infrastructure/database/repositories/postgres-sheet-record-context-repository.js';
 import { PostgresSpreadsheetRepository } from '../infrastructure/database/repositories/postgres-spreadsheet-repository.js';
 import { PostgresSessionRepository } from '../infrastructure/database/repositories/postgres-session-repository.js';
 import { PostgresSuggestionSetRepository } from '../infrastructure/database/repositories/postgres-suggestion-set-repository.js';
@@ -54,6 +55,7 @@ export class InfrastructureModules {
   readonly publishJobs: PostgresPublishJobRepository;
   readonly spreadsheets: PostgresSpreadsheetRepository;
   readonly sheetActions: PostgresSheetActionRepository;
+  readonly sheetRecordContexts: PostgresSheetRecordContextRepository;
   readonly aiProvider: AIProvider;
   readonly oauthGateway: OAuthGateway;
   readonly formsGateway: GoogleFormsGateway;
@@ -82,6 +84,7 @@ export class InfrastructureModules {
     this.publishJobs = new PostgresPublishJobRepository(database);
     this.spreadsheets = new PostgresSpreadsheetRepository(database);
     this.sheetActions = new PostgresSheetActionRepository(database);
+    this.sheetRecordContexts = new PostgresSheetRecordContextRepository(database);
     const http = new FetchHttpClient();
     this.aiProvider = overrides.aiProvider ?? new AIProviderFactory(logger).create(config.ai);
     this.oauthGateway = overrides.oauthGateway ?? new GoogleOAuthHttpGateway(config.google, http, logger);
