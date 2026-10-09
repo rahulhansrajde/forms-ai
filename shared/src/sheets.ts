@@ -272,7 +272,3 @@ export interface SheetActionView {
   table: SheetTableView | null;
   updatedAt: string;
 }
-
-export interface ExecuteSheetActionRequest {
-  confirmDestructive?: boolean;
-}

@@ -1,4 +1,4 @@
-import { SHEET_LIMITS, type SheetOperation } from '@forms-ai/contracts';
+import { SHEET_LIMITS } from '@forms-ai/contracts';
 import { z } from 'zod';
 import { A1Notation } from './a1-notation.js';
 
@@ -165,9 +165,3 @@ export const sheetPlanOutputSchema = z.object({
   operations: sheetOperationListSchema,
   clarificationQuestion: z.string().trim().min(1).max(500).nullable().optional(),
 });
-
-export type SheetPlanOutput = z.infer<typeof sheetPlanOutputSchema>;
-
-export function asSheetOperation(operation: z.infer<typeof sheetOperationSchema>): SheetOperation {
-  return operation as SheetOperation;
-}

@@ -1,20 +1,5 @@
 import type { LinearScale, QuestionType } from './form-schema.js';
 
-export const FORM_OPERATION_TYPES = [
-  'UPDATE_TITLE',
-  'UPDATE_DESCRIPTION',
-  'ADD_SECTION',
-  'UPDATE_SECTION',
-  'REMOVE_SECTION',
-  'REORDER_SECTION',
-  'ADD_QUESTION',
-  'UPDATE_QUESTION',
-  'REMOVE_QUESTION',
-  'REORDER_QUESTION',
-] as const;
-
-export type FormOperationType = (typeof FORM_OPERATION_TYPES)[number];
-
 export interface QuestionInput {
   type: QuestionType;
   title: string;

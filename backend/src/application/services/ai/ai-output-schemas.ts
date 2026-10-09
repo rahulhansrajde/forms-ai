@@ -25,8 +25,3 @@ export const suggestionProposalOutputSchema = z.object({
 export const suggestionSelectionOutputSchema = z.object({
   acceptedIds: z.array(z.string().trim().min(1).max(64)).max(50),
 });
-
-export type IntentClassificationOutput = z.infer<typeof intentClassificationOutputSchema>;
-export type FormOperationPlanOutput = z.infer<typeof formOperationPlanOutputSchema>;
-export type SuggestionProposalOutput = z.infer<typeof suggestionProposalOutputSchema>;
-export type SuggestionSelectionOutput = z.infer<typeof suggestionSelectionOutputSchema>;

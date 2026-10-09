@@ -11,7 +11,6 @@ export default tseslint.config(
       '**/coverage/**',
       'playwright-report/**',
       'test-results/**',
-      'login, sign-up pages, app-logo, google-oauth-credentials/**',
     ],
   },
   js.configs.recommended,

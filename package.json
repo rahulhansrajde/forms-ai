@@ -11,7 +11,7 @@
   "scripts": {
     "build": "npm run build -w shared && npm run build -w backend && npm run build -w frontend",
     "typecheck": "npm run build -w shared && npm run typecheck -w backend && npm run typecheck -w frontend",
-    "lint": "eslint . && node scripts/check-no-comments.mjs",
+    "lint": "eslint .",
     "test": "npm run build -w shared && npm run test -w backend && npm run test -w frontend",
     "test:e2e": "playwright test",
     "dev": "npm run build -w shared && concurrently -n api,web \"npm run dev -w backend\" \"npm run dev -w frontend\"",

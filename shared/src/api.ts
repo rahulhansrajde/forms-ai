@@ -1,5 +1,5 @@
 import type { FormOperation } from './form-operations.js';
-import type { FormSchema, QuestionType } from './form-schema.js';
+import type { FormSchema } from './form-schema.js';
 import type { ChatIntent } from './intents.js';
 import type { SheetActionView } from './sheets.js';
 import type { DraftStatus, PublishJobStatus, PublishStep, VersionSource } from './versioning.js';
@@ -57,10 +57,6 @@ export interface ConversationDetail extends ConversationSummary {
   activeDraftId: string | null;
 }
 
-export interface CreateConversationRequest {
-  title?: string;
-}
-
 export type MessageRole = 'USER' | 'ASSISTANT';
 
 export interface PublishedFormView {
@@ -79,10 +75,6 @@ export interface MessageView {
   publishedForm: PublishedFormView | null;
   sheetAction: SheetActionView | null;
   createdAt: string;
-}
-
-export interface SendMessageRequest {
-  content: string;
 }
 
 export interface FormVersionSummary {
@@ -117,12 +109,6 @@ export interface DraftView {
   currentVersion: FormVersionView;
   publication: PublicationView | null;
   updatedAt: string;
-}
-
-export interface SuggestedQuestionView {
-  id: string;
-  title: string;
-  type: QuestionType;
 }
 
 export interface SendMessageResult {

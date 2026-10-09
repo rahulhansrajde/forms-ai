@@ -13,17 +13,4 @@ export const CHAT_INTENTS = [
   'LINK_SHEET',
 ] as const;
 
-export const SHEET_INTENTS: readonly ChatIntent[] = ['CREATE_SHEET', 'MODIFY_SHEET', 'READ_SHEET', 'LINK_SHEET'];
-
 export type ChatIntent = (typeof CHAT_INTENTS)[number];
-
-export const DRAFT_CHANGING_INTENTS: readonly ChatIntent[] = [
-  'CREATE_FORM',
-  'MODIFY_FORM',
-  'REGENERATE_FORM',
-  'ACCEPT_SUGGESTIONS',
-];
-
-export function isChatIntent(value: unknown): value is ChatIntent {
-  return typeof value === 'string' && (CHAT_INTENTS as readonly string[]).includes(value);
-}
