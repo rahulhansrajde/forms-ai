@@ -69,6 +69,66 @@ describe('RecordRequestParser', () => {
   );
 
   it.each([
+    ["What is Rahul's year?", { kind: 'VALUE', value: 'Rahul' }, ['year']],
+    ['What is Priya Sharma’s department', { kind: 'VALUE', value: 'Priya Sharma' }, ['department']],
+    ['What is the college of STU003?', { kind: 'VALUE', value: 'STU003' }, ['college']],
+    ['Find student id STU001.', { kind: 'VALUE', column: 'Student ID', value: 'STU001' }, []],
+    ['Find the student with email arjun@example.com', { kind: 'VALUE', column: 'Email', value: 'arjun@example.com' }, []],
+    ["Show Rahul's row.", { kind: 'VALUE', value: 'Rahul' }, []],
+    ['Find Priya Sharma', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['What is his year?', { kind: 'PRONOUN' }, ['year']],
+    ['What department is Arjun in, and what is his year?', { kind: 'VALUE', value: 'Arjun' }, ['department', 'year']],
+    ['Find Rahul and show his phone number', { kind: 'VALUE', value: 'Rahul' }, ['phone number']],
+    ["What is Rahul's favourite colour?", { kind: 'VALUE', value: 'Rahul' }, ['favourite colour']],
+    ['find Priya Sharma row and get mew that row details', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['find Priya Sharma row and get me that row details', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['fnd priya sharma row and give me the details', { kind: 'VALUE', value: 'priya sharma' }, []],
+    ['can u get Priya Sharma record pls', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['Priya Sharma row details', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['get me the row of Priya Sharma', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['lookup Priya Sharma detials', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['who is Priya Sharma', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['show row 4', { kind: 'ROW', row: 4 }, []],
+    ['show me that row details', { kind: 'PRONOUN' }, []],
+    ['find Priya Sharma row and what is her year', { kind: 'VALUE', value: 'Priya Sharma' }, ['year']],
+    ['show me priya sharma row alone', { kind: 'VALUE', value: 'priya sharma' }, []],
+    ['show only the matching row for Priya Sharma', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+    ['give me the specific record of Priya Sharma', { kind: 'VALUE', value: 'Priya Sharma' }, []],
+  ])('parses the record question %s', (message, subject, fields) => {
+    expect(parser.parseQuestion(message, HEADERS, ['Students'])).toEqual({ subject, fields, confident: true });
+  });
+
+  it('marks a bare "show <name>" as a guess so an unmatched name falls back to a normal read', () => {
+    expect(parser.parseQuestion('Show me Priya Sharma', HEADERS, ['Students'])).toEqual({ subject: { kind: 'VALUE', value: 'Priya Sharma' }, fields: [], confident: false });
+    expect(parser.parseQuestion('show me data', HEADERS, ['Students'])).toBeNull();
+    expect(parser.parseQuestion('tell me a joke', HEADERS, ['Students'])).toBeNull();
+  });
+
+  it.each([
+    'Read first row.',
+    'Read 2 rows',
+    'Show the department column.',
+    'Show me the first 3 rows from Students',
+    'Read all rows.',
+    'show me all the rows',
+    'Summarize the entire spreadsheet',
+    'Read the whole sheet',
+    'How many students are in CSE?',
+    'Read A1:F6',
+    'Find Students',
+    'What is the title of the form?',
+    'What is the spreadsheet called?',
+    'Find an unknown student',
+    "What is Rahul's year and what is Priya's year?",
+    "Change Rahul's Year to 4th Year.",
+    'Who are you?',
+    'Show me the preview',
+    'Hi there',
+  ])('does not treat %s as a question about one record', (message) => {
+    expect(parser.parseQuestion(message, HEADERS, ['Students'])).toBeNull();
+  });
+
+  it.each([
     ['His student id is STU001', { kind: 'VALUE', column: 'Student ID', value: 'STU001' }],
     ['Its student id is stu001', { kind: 'VALUE', column: 'Student ID', value: 'stu001' }],
     ["Rahul's email is rahul@example.com.", { kind: 'VALUE', column: 'Email', value: 'rahul@example.com' }],

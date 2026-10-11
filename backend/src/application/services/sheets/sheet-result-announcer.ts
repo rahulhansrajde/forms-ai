@@ -21,8 +21,12 @@ export class SheetResultAnnouncer {
   ) {}
 
   async announceSuccess(action: SheetAction, spreadsheet: Spreadsheet, summary: string | null = null): Promise<Message> {
+    return this.post(action, this.describeSuccess(action, spreadsheet, summary), action.id);
+  }
+
+  describeSuccess(action: SheetAction, spreadsheet: Spreadsheet, summary: string | null = null): string {
     const text = this.successText(action, spreadsheet);
-    return this.post(action, summary ? `${text}\n\nSummary: ${summary}` : text, action.id);
+    return summary ? `${text}\n\nSummary: ${summary}` : text;
   }
 
   async announceFailure(action: SheetAction, reason: string): Promise<Message> {

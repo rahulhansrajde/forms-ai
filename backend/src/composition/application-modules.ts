@@ -39,6 +39,7 @@ import { GoogleFormPublisher } from '../application/services/publishing/google-f
 import { PublicationAnnouncer } from '../application/services/publishing/publication-announcer.js';
 import { PublishJobTracker } from '../application/services/publishing/publish-job-tracker.js';
 import { SheetActionExecutor } from '../application/services/sheets/sheet-action-executor.js';
+import { SheetActionRunner } from '../application/services/sheets/sheet-action-runner.js';
 import { SheetActionVerifier } from '../application/services/sheets/sheet-action-verifier.js';
 import { SheetActionViewService } from '../application/services/sheets/sheet-action-view-service.js';
 import { SheetPlanningService } from '../application/services/sheets/sheet-planning-service.js';
@@ -142,6 +143,8 @@ export class ApplicationModules {
   private readonly sheetViews: SheetActionViewService;
   private readonly describer: SheetOperationDescriber;
   private readonly records: SheetRecordService;
+  private readonly sheetRunner: SheetActionRunner;
+  private readonly sheetAnnouncer: SheetResultAnnouncer;
   private readonly messageViews: MessageViewAssembler;
 
   constructor(
@@ -173,6 +176,8 @@ export class ApplicationModules {
     this.describer = new SheetOperationDescriber(new A1Notation());
     this.sheetViews = new SheetActionViewService(infrastructure.sheetActions, infrastructure.spreadsheets, this.describer);
     this.records = this.createSheetRecordService();
+    this.sheetRunner = this.createSheetRunner();
+    this.sheetAnnouncer = new SheetResultAnnouncer(infrastructure.messages, infrastructure.conversations, identifiers, clock, this.describer);
     this.messageViews = new MessageViewAssembler(this.sheetViews);
     this.auth = this.createAuthUseCases();
     this.conversations = this.createConversationUseCases();
@@ -274,7 +279,17 @@ export class ApplicationModules {
 
   private createSheetHandlers(planner: SheetPlanningService, clarifications: ClarificationMessages): IntentHandler[] {
     const { sheetActions, spreadsheets, sheetsGateway, identifiers, clock } = this.infrastructure;
-    const collaborators = { planner, actions: sheetActions, clarifications, describer: this.describer, records: this.records, identifiers, clock };
+    const collaborators = {
+      planner,
+      actions: sheetActions,
+      clarifications,
+      describer: this.describer,
+      records: this.records,
+      runner: this.sheetRunner,
+      announcer: this.sheetAnnouncer,
+      identifiers,
+      clock,
+    };
     return [
       new SheetActionHandler('CREATE_SHEET', 'CREATE', collaborators),
       new SheetActionHandler('MODIFY_SHEET', 'MODIFY', collaborators),
@@ -316,8 +331,8 @@ export class ApplicationModules {
     });
   }
 
-  private createSheetsUseCases(): SheetsUseCases {
-    const { sheetsGateway, spreadsheets, sheetActions, messages, conversations, aiProvider, logger, database, identifiers, clock } = this.infrastructure;
+  private createSheetRunner(): SheetActionRunner {
+    const { sheetsGateway, spreadsheets, sheetActions, aiProvider, logger, database, identifiers, clock } = this.infrastructure;
     const notation = new A1Notation();
     const inspector = new SpreadsheetInspector(sheetsGateway, notation);
     const executor = new SheetActionExecutor(
@@ -334,21 +349,21 @@ export class ApplicationModules {
       new SpreadsheetReferenceParser(),
       this.records,
     );
+    return new SheetActionRunner(this.credentials, sheetActions, executor, new SheetDataSummarizer(aiProvider, logger, this.describer), clock);
+  }
+
+  private createSheetsUseCases(): SheetsUseCases {
+    const { spreadsheets, sheetActions, database } = this.infrastructure;
     return {
-      execute: new ExecuteSheetActionUseCase(
-        this.credentials,
-        {
-          actions: sheetActions,
-          spreadsheets,
-          executor,
-          announcer: new SheetResultAnnouncer(messages, conversations, identifiers, clock, this.describer),
-          views: this.sheetViews,
-          messages: this.messageViews,
-          transactions: database,
-          summarizer: new SheetDataSummarizer(aiProvider, logger, this.describer),
-        },
-        clock,
-      ),
+      execute: new ExecuteSheetActionUseCase({
+        actions: sheetActions,
+        spreadsheets,
+        runner: this.sheetRunner,
+        announcer: this.sheetAnnouncer,
+        views: this.sheetViews,
+        messages: this.messageViews,
+        transactions: database,
+      }),
     };
   }
 

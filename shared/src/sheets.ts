@@ -244,6 +244,7 @@ export interface SheetTableData {
   totalRows: number;
   truncated: boolean;
   explicitRange?: boolean;
+  record?: { row: number };
 }
 
 export interface SheetTableView extends SheetTableData {

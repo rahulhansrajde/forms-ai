@@ -364,7 +364,7 @@ test('the new chat heading and composer are centred as one group below the heade
   await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/);
 });
 
-test('journey 8: create, change and read a Google Sheet only through explicit buttons', async ({ page }) => {
+test('journey 8: create and change a Google Sheet only through explicit buttons, and read it without one', async ({ page }) => {
   test.setTimeout(120_000);
   await signUp(page);
   await page.goto('/auth/google?returnTo=/settings');
@@ -397,10 +397,10 @@ test('journey 8: create, change and read a Google Sheet only through explicit bu
   await expect(change.getByText('Changes applied')).toBeVisible();
 
   await sendMessage(page, 'Show me the first 5 rows');
-  const read = log.getByRole('region', { name: 'Read from “Event Leads”' });
-  await read.getByRole('button', { name: 'Read sheet' }).click();
   const table = log.getByRole('region', { name: 'Values from Sheet1 · header row only' });
   await expect(table.getByRole('columnheader')).toHaveText(['Name', 'Email', 'Phone']);
+  await expect(log.getByRole('button', { name: /Read sheet/ })).toHaveCount(0);
+  await expect(log.getByText(/Click Read sheet/)).toHaveCount(0);
 
   const conversationUrl = page.url();
   for (const theme of ['light', 'dark'] as const) {
@@ -441,7 +441,6 @@ test('journey 9: link an existing Google Sheet by URL and work on it', async ({ 
   await expect(found.getByText('Connected to this chat')).toBeVisible();
 
   await sendMessage(page, 'Read the first 20 rows');
-  await log.getByRole('region', { name: 'Read from “Hackathon Registrations”' }).getByRole('button', { name: 'Read sheet' }).click();
   const table = log.getByRole('region', { name: 'Values from Registrations · 2 data rows · header row included' });
   await expect(table.getByRole('columnheader')).toHaveText(['Name', 'Email', 'College']);
   await expect(table.getByRole('cell', { name: 'Alan Turing' })).toBeVisible();
@@ -495,12 +494,16 @@ test('journey 10: update a student by name and ask for an ID when names repeat',
   await expect(log.getByText('Student ID STU004 is Ananya.', { exact: false })).toBeVisible();
 
   await sendMessage(page, 'Show me the first 3 rows from Students');
-  await log.getByRole('region', { name: 'Read from “Forms AI Student Registration”' }).getByRole('button', { name: 'Read sheet' }).click();
   await expect(log.getByRole('region', { name: 'Values from Students · 3 data rows · header row included' })).toBeVisible();
-  const readStep = log.getByRole('region', { name: 'Read from “Forms AI Student Registration”' }).getByRole('listitem');
-  await expect(readStep).toContainText('Read the first 3 data rows from “Students”');
-  await expect(readStep.getByText('Header row included')).toBeVisible();
+  await expect(log.getByText('3 data rows from “Students” (header row included)', { exact: false })).toBeVisible();
+  await expect(log.getByRole('button', { name: /Read sheet/ })).toHaveCount(0);
   await expect(log.getByText(/A1:/)).toHaveCount(0);
+
+  await sendMessage(page, "What is Priya's department?");
+  const answer = log.getByRole('region', { name: 'Google Sheets result for “Forms AI Student Registration”' }).last();
+  await expect(answer).toContainText("Priya's Department is CSE.");
+  await expect(answer).not.toContainText('Ananya');
+  await expect(answer.getByRole('table')).toHaveCount(0);
 
   const conversationUrl = page.url();
   for (const theme of ['light', 'dark'] as const) {

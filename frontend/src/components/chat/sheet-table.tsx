@@ -5,7 +5,7 @@ const STRUCTURE_RANGE = 'Spreadsheet structure';
 const STARTS_AT_FIRST_ROW = /(?:^|!)[A-Z]{0,3}1(?:$|:)/;
 
 function hasHeaderRow(table: SheetTableView): boolean {
-  return table.range === STRUCTURE_RANGE || STARTS_AT_FIRST_ROW.test(table.range);
+  return table.range === STRUCTURE_RANGE || table.record !== undefined || STARTS_AT_FIRST_ROW.test(table.range);
 }
 
 export function SheetTable({ table }: { table: SheetTableView }) {

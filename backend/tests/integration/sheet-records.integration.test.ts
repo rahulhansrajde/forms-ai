@@ -235,19 +235,18 @@ describe('natural-language record updates in Google Sheets', () => {
         note: 'Header row included',
       },
     ]);
-    const result = await execute(signedIn, read.sheetAction!);
-    expect(result.body.action.table.range).toBe("'Students'!A1:G4");
-    expect(result.body.action.table.values).toHaveLength(4);
-    expect(result.body.action.table.totalRows).toBe(4);
-    expect(result.body.action.table.label).toBe('Students · 3 data rows · header row included');
-    expect(result.body.message.content).toBe(
+    expect(read.sheetAction?.table?.range).toBe("'Students'!A1:G4");
+    expect(read.sheetAction?.table?.values).toHaveLength(4);
+    expect(read.sheetAction?.table?.totalRows).toBe(4);
+    expect(read.sheetAction?.table?.label).toBe('Students · 3 data rows · header row included');
+    expect(read.content).toBe(
       'Here is the data from “Forms AI Student Registration”: 3 data rows from “Students” (header row included). The table below shows the exact values from Google Sheets.',
     );
-    expect(result.body.message.content).not.toMatch(A1_RANGE);
+    expect(read.content).not.toMatch(A1_RANGE);
 
     const explicit = await chat(signedIn, conversationId, 'Read A1:F6');
     expect(explicit.sheetAction?.steps.map((step) => step.text)).toEqual(['Read A1:F6 from “Students”']);
-    expect((await execute(signedIn, explicit.sheetAction!)).body.action.table.label).toBe('Students · A1:F6');
+    expect(explicit.sheetAction?.table?.label).toBe('Students · A1:F6');
   });
 
   it('describes column changes by name', async () => {

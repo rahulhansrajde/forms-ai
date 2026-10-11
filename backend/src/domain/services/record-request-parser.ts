@@ -1,4 +1,5 @@
 import type { HeaderMatcher } from './header-matcher.js';
+import { RecordQuestionParser } from './record-question-parser.js';
 import type { TextNormalizer } from './text-normalizer.js';
 
 export type RecordSubject = { kind: 'VALUE'; value: string; column?: string } | { kind: 'ROW'; row: number } | { kind: 'PRONOUN' };
@@ -13,6 +14,13 @@ export interface RecordRequest {
   sheet?: string;
   subject: RecordSubject;
   changes: RecordRequestChange[];
+  read?: { fields: string[]; confident: boolean };
+}
+
+export interface RecordQuestion {
+  subject: RecordSubject;
+  fields: string[];
+  confident: boolean;
 }
 
 export type IdentifierStatement = { kind: 'VALUE'; column: string; value: string } | { kind: 'ROW'; row: number };
@@ -39,10 +47,14 @@ const MAX_FIELD_WORDS = 4;
 const IDENTIFYING_KINDS = new Set(['IDENTIFIER', 'EMAIL', 'NAME']);
 
 export class RecordRequestParser {
+  private readonly questions: RecordQuestionParser;
+
   constructor(
     private readonly text: TextNormalizer,
     private readonly headers: HeaderMatcher,
-  ) {}
+  ) {
+    this.questions = new RecordQuestionParser(text, headers);
+  }
 
   parse(message: string, headers: readonly string[]): RecordRequest | null {
     const text = this.text.clean(message);
@@ -61,6 +73,11 @@ export class RecordRequestParser {
       return null;
     }
     return { subject: parsed.subject, changes: [{ column: parsed.field, value, ...(from ? { from } : {}) }] };
+  }
+
+  // Questions about one record, e.g. "What is Priya's department?" or "find Rahul row and show me that row". Fields are column names; none means the whole row.
+  parseQuestion(message: string, headers: readonly string[], tabs: readonly string[] = []): RecordQuestion | null {
+    return this.questions.parse(message, headers, tabs);
   }
 
   parseIdentifier(message: string, headers: readonly string[]): IdentifierStatement | null {

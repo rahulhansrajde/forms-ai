@@ -44,14 +44,10 @@ export class SendChatMessageUseCase {
     await this.suggestionSets.settleConfirmation(context.openSuggestions, turn.decision);
     const classifiedUserMessage = userMessage.classify(turn.outcome.intent);
     await this.messages.updateIntent(classifiedUserMessage.id, turn.outcome.intent);
-    const assistantMessage = Message.fromAssistant(
-      this.identifiers.generate(),
-      conversation.id,
-      turn.outcome.reply,
-      turn.outcome.intent,
-      this.clock.now(),
-      turn.outcome.sheetActionId ?? null,
-    );
+    const { reply, intent, sheetActionId = null, sheetResult } = turn.outcome;
+    const assistantMessage = sheetResult
+      ? Message.sheetResult(this.identifiers.generate(), conversation.id, reply, sheetActionId, this.clock.now())
+      : Message.fromAssistant(this.identifiers.generate(), conversation.id, reply, intent, this.clock.now(), sheetActionId);
     await this.messages.insert(assistantMessage);
     const updatedConversation = await this.recordActivity(conversation, userMessage.content);
     const changedDraft = turn.outcome.changedDraft;

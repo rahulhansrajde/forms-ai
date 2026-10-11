@@ -222,10 +222,11 @@ describe('Google Sheets actions', () => {
     const { conversationId, googleId } = await createdSheet(signedIn);
     await application.sheets.writeValues('seed', googleId, "'Sheet1'!A2:C2", [['Ada', 'ada@example.com', '555']], 'RAW');
 
-    const read = await propose(signedIn, conversationId, 'Show me the first 5 rows');
-    expect(read).toMatchObject({ kind: 'READ', status: 'PENDING' });
-    const response = await execute(signedIn, read.id);
-    expect(response.body.action.table).toEqual({
+    const turn = await sendChat(signedIn, conversationId, 'Show me the first 5 rows');
+    const message = turn.assistantMessage as MessageView;
+    expect(turn.userMessage.intent).toBe('READ_SHEET');
+    expect(message.sheetAction).toMatchObject({ kind: 'READ', status: 'SUCCEEDED' });
+    expect(message.sheetAction!.table).toEqual({
       range: "'Sheet1'!A1:C6",
       values: [
         ['Name', 'Email', 'Phone'],
@@ -235,13 +236,12 @@ describe('Google Sheets actions', () => {
       truncated: false,
       label: 'Sheet1 · 1 data row · header row included',
     });
-    expect(response.body.message.content).toContain('Here is the data from “Event Leads”: 1 data row from “Sheet1” (header row included).');
-    expect(response.body.message.sheetAction.table.values).toHaveLength(2);
+    expect(message.content).toContain('Here is the data from “Event Leads”: 1 data row from “Sheet1” (header row included).');
+    expect(message.sheetAction!.table!.values).toHaveLength(2);
 
-    const structure = await propose(signedIn, conversationId, 'How many tabs does the spreadsheet have?');
-    const structured = await execute(signedIn, structure.id);
-    expect(structured.body.message.content).toContain('“Event Leads” has 1 tab.');
-    expect(structured.body.action.table.values).toEqual([
+    const structured = (await sendChat(signedIn, conversationId, 'How many tabs does the spreadsheet have?')).assistantMessage as MessageView;
+    expect(structured.content).toContain('“Event Leads” has 1 tab.');
+    expect(structured.sheetAction!.table!.values).toEqual([
       ['Tab', 'Rows', 'Columns', 'Header row'],
       ['Sheet1', '1000', '26', 'Name, Email, Phone'],
     ]);
@@ -339,9 +339,25 @@ describe('Google Sheets actions', () => {
     );
     application.oauth.refreshFailure = new GoogleOAuthError('GOOGLE_RECONNECT_REQUIRED', 'Your Google connection has expired.');
     try {
-      const read = await propose(signedIn, conversationId, 'Show me the first 5 rows');
-      const response = await execute(signedIn, read.id, {}, 409);
+      const change = await propose(signedIn, conversationId, 'Add a column called Notes');
+      const response = await execute(signedIn, change.id, {}, 409);
       expect(response.body.error.code).toBe('GOOGLE_RECONNECT_REQUIRED');
+    } finally {
+      application.oauth.refreshFailure = null;
+    }
+
+    await connectGoogle(signedIn);
+    await application.container.database.query(
+      "UPDATE connected_accounts SET token_expires_at = now() - interval '1 hour' WHERE user_id = $1",
+      [signedIn.user.id],
+    );
+    application.oauth.refreshFailure = new GoogleOAuthError('GOOGLE_RECONNECT_REQUIRED', 'Your Google connection has expired.');
+    try {
+      const read = (await sendChat(signedIn, conversationId, 'Show me the first 5 rows')).assistantMessage as MessageView;
+      expect(read.intent).toBe('READ_SHEET');
+      expect(read.content).toContain('Your Google connection has expired.');
+      expect(read.content).not.toContain('Here is the data');
+      expect(read.sheetAction).toMatchObject({ kind: 'READ', status: 'FAILED', table: null });
     } finally {
       application.oauth.refreshFailure = null;
     }

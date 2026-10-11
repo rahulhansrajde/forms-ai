@@ -86,6 +86,16 @@ describe('RuleBasedSheetPlanner', () => {
     expect(plan('READ', 'What columns does it have?').operations).toEqual([{ type: 'GET_SPREADSHEET' }]);
     expect(plan('READ', 'Show me the first 5 rows').operations).toEqual([{ type: 'READ_RANGE', range: 'A1:C6' }]);
   });
+
+  it('reads exactly the rows or column that were asked for', () => {
+    expect(plan('READ', 'Read first row.').operations).toEqual([{ type: 'READ_RANGE', range: 'A1:C2' }]);
+    expect(plan('READ', 'Read 2 rows.').operations).toEqual([{ type: 'READ_RANGE', range: 'A1:C3' }]);
+    expect(plan('READ', 'Show me the first three rows').operations).toEqual([{ type: 'READ_RANGE', range: 'A1:C4' }]);
+    expect(plan('READ', 'Read all rows.').operations).toEqual([{ type: 'READ_RANGE', range: 'A1:C' }]);
+    expect(plan('READ', 'Show the email column.').operations).toEqual([{ type: 'READ_RANGE', range: 'B1:B' }]);
+    expect(plan('READ', 'Show the email column for the first 5 rows').operations).toEqual([{ type: 'READ_RANGE', range: 'B1:B6' }]);
+    expect(plan('READ', 'Summarize the entire spreadsheet').operations).toEqual([{ type: 'READ_RANGE', range: 'A1:C201', summarize: true }]);
+  });
 });
 
 describe('rule-based handling of existing Google Sheets', () => {

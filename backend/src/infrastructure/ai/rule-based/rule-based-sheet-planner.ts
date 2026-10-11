@@ -13,6 +13,10 @@ const TITLE_SUFFIX = /\s+(?:with|that has|having)\b.*$/i;
 const DEFAULT_TAB = 'Sheet1';
 const DEFAULT_READ_ROWS = 20;
 const SUMMARY_REQUEST = /\b(summar\w*|analy[sz]\w*|insights?|overview)\b/i;
+const COUNT_WORDS: Readonly<Record<string, number>> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+const ROW_COUNT = /\b(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:data\s+)?rows?\b/i;
+const FIRST_ROW = /\b(?:first|top)\s+(?:data\s+)?row\b/i;
+const EVERY_ROW = /\b(?:all|every|entire|whole)\b(?:\s+(?:the|of\s+the))?\s+(?:rows?|data|sheet|spreadsheet|tab|records?)\b|\beverything\b/i;
 
 function clean(text: string): string {
   return text.trim().replace(QUOTES, '').trim();
@@ -183,14 +187,36 @@ export class RuleBasedSheetPlanner {
     if (!summarize && /\b(how many|what columns|which columns|columns does|tabs?|structure)\b/i.test(instruction)) {
       return { summary: 'Read the spreadsheet structure.', operations: [{ type: 'GET_SPREADSHEET' }] };
     }
-    const requested = /\bfirst\s+(\d{1,3})\s+rows?\b/i.exec(instruction)?.[1];
-    const rows = Number(requested ?? (summarize ? SHEET_LIMITS.maxReadRows : DEFAULT_READ_ROWS));
+    const headers = spreadsheet?.tabs[0]?.headers ?? [];
+    const requested = this.requestedRows(instruction);
+    const rows = requested ?? (summarize ? SHEET_LIMITS.maxReadRows : DEFAULT_READ_ROWS);
     const width = Math.max(1, spreadsheet?.tabs[0]?.headers.length ?? 26);
-    const lastColumn = this.notation.columnLetters(Math.min(width, 26) - 1);
+    const column = this.requestedColumn(instruction, headers);
+    const [firstColumn, lastColumn] = column >= 0 ? [this.notation.columnLetters(column), this.notation.columnLetters(column)] : ['A', this.notation.columnLetters(Math.min(width, 26) - 1)];
+    const everyRow = requested === null && !summarize && (column >= 0 || EVERY_ROW.test(instruction));
+    const target = `${firstColumn}1:${lastColumn}${everyRow ? '' : rows + 1}`;
+    const subject = column >= 0 ? `the “${headers[column]}” column` : everyRow ? 'every row' : `the first ${rows} rows`;
     return {
-      summary: summarize ? `Read and summarized the first ${rows} rows.` : `Read the first ${rows} rows.`,
-      operations: [{ type: 'READ_RANGE', range: `A1:${lastColumn}${rows + 1}`, ...(summarize ? { summarize } : {}) }],
+      summary: summarize ? `Read and summarized ${subject}.` : `Read ${subject}.`,
+      operations: [{ type: 'READ_RANGE', range: target, ...(summarize ? { summarize } : {}) }],
     };
+  }
+
+  private requestedRows(instruction: string): number | null {
+    const counted = ROW_COUNT.exec(instruction)?.[1];
+    if (counted) {
+      return COUNT_WORDS[counted.toLowerCase()] ?? Number(counted);
+    }
+    return FIRST_ROW.test(instruction) ? 1 : null;
+  }
+
+  private requestedColumn(instruction: string, headers: readonly string[]): number {
+    const lowered = instruction.toLowerCase();
+    const mentions = (header: string) => {
+      const name = header.trim().toLowerCase();
+      return name.length > 0 && (lowered.includes(`${name} column`) || lowered.includes(`column ${name}`) || lowered.includes(`${name} values`));
+    };
+    return headers.reduce((best, header, index) => (mentions(header) && (best < 0 || header.length > headers[best]!.length) ? index : best), -1);
   }
 
   private headerIndex(headers: readonly string[], name: string): number {

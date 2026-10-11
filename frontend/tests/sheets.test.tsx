@@ -337,6 +337,76 @@ describe('record update cards', () => {
   });
 });
 
+describe('automatic read results', () => {
+  const HEADERS = ['Register Number', 'Name', 'Department', 'Rank'];
+
+  function answerInChat(fake: Fake, content: string, table: SheetActionView['table']) {
+    const read: SheetActionView = {
+      ...fake.fixtures.sheetAction,
+      id: 'read-auto',
+      kind: 'READ',
+      status: 'SUCCEEDED',
+      spreadsheetTitle: 'Forms AI Rank List',
+      spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/rank-list/edit',
+      table,
+    };
+    fake.spies.send.mockResolvedValue({
+      ...fake.fixtures.sendResult,
+      assistantMessage: message('ASSISTANT', content, { id: 'answer-1', intent: null, sheetAction: read }),
+      draft: null,
+      draftChanged: false,
+    });
+  }
+
+  it('shows the data in the reply without asking for another click', async () => {
+    const fake = createFakeServices();
+    answerInChat(fake, 'Here is the data from “Forms AI Rank List”: 1 data row from “Students” (header row included).', {
+      range: "'Students'!A1:D2",
+      values: [HEADERS, ['STU001', 'Rahul Hansraj H', 'AIML', '185']],
+      totalRows: 2,
+      truncated: false,
+      label: 'Students · 1 data row · header row included',
+    });
+    renderApp(fake.services, '/chat');
+    await send('Read first row.');
+
+    const result = await screen.findByRole('region', { name: 'Google Sheets result for “Forms AI Rank List”' });
+    expect(within(result).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual(HEADERS);
+    expect(screen.queryByRole('button', { name: /Read sheet/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Click Read sheet/)).not.toBeInTheDocument();
+    expect(fake.spies.executeSheet).not.toHaveBeenCalled();
+  });
+
+  it('answers a single-value question with text only', async () => {
+    const fake = createFakeServices();
+    answerInChat(fake, "Rahul Hansraj H's Rank is 185.", null);
+    renderApp(fake.services, '/chat');
+    await send("What is Rahul Hansraj H's rank?");
+    const answer = await screen.findByRole('region', { name: 'Google Sheets result for “Forms AI Rank List”' });
+    expect(answer).toHaveTextContent("Rahul Hansraj H's Rank is 185.");
+    expect(within(answer).queryByRole('table')).not.toBeInTheDocument();
+    expect(within(answer).getByRole('link', { name: 'Open sheet' })).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/rank-list/edit');
+  });
+
+  it('shows one record with its column headers', async () => {
+    const record = createFakeServices();
+    answerInChat(record, "Here is Rahul Hansraj H's row from “Students”.", {
+      range: "'Students'!A2:D2",
+      values: [HEADERS, ['STU001', 'Rahul Hansraj H', 'AIML', '185']],
+      totalRows: 2,
+      truncated: false,
+      record: { row: 2 },
+      label: 'Students · row 2',
+    });
+    renderApp(record.services, '/chat');
+    await send("Show Rahul Hansraj H's row.");
+    const region = await screen.findByRole('region', { name: 'Values from Students · row 2' });
+    expect(within(region).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual(HEADERS);
+    expect(within(region).getAllByRole('row')).toHaveLength(2);
+    expect(within(region).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['STU001', 'Rahul Hansraj H', 'AIML', '185']);
+  });
+});
+
 describe('read cards', () => {
   it('keeps the requested data-row count and notes the header row separately', async () => {
     const fake = createFakeServices();

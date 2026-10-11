@@ -7,8 +7,10 @@ import type { SpreadsheetReferenceParser } from '../../../../domain/services/spr
 import { GoogleOAuthError, GoogleSheetsError } from '../../../../shared/errors/application-errors.js';
 import type { GoogleCredentialService } from '../../google/google-credential-service.js';
 import type { ClarificationMessages } from '../../intent/clarification-messages.js';
+import type { SheetActionRunner } from '../../sheets/sheet-action-runner.js';
 import type { SheetPlanningService } from '../../sheets/sheet-planning-service.js';
-import type { SheetRecordService } from '../../sheets/sheet-record-service.js';
+import type { RecordPreparation, SheetRecordService } from '../../sheets/sheet-record-service.js';
+import type { SheetResultAnnouncer } from '../../sheets/sheet-result-announcer.js';
 import type { SpreadsheetAccessChecker } from '../../sheets/spreadsheet-access-checker.js';
 import type { ChatTurnContext, IntentDecision, IntentOutcome } from '../chat-turn-context.js';
 import { replyOnly, type IntentHandler } from './intent-handler.js';
@@ -19,9 +21,13 @@ export interface SheetHandlerCollaborators {
   clarifications: ClarificationMessages;
   describer: SheetOperationDescriber;
   records: SheetRecordService;
+  runner: SheetActionRunner;
+  announcer: SheetResultAnnouncer;
   identifiers: IdentifierGenerator;
   clock: Clock;
 }
+
+type RecordAnswer = Extract<RecordPreparation, { kind: 'answer' }>;
 
 const BUTTON_LABELS: Readonly<Record<SheetPlanKind, string>> = {
   CREATE: 'Create Google Sheet',
@@ -41,10 +47,13 @@ export class SheetActionHandler implements IntentHandler {
     if (this.kind !== 'CREATE' && !context.spreadsheet) {
       return replyOnly('CLARIFICATION_REQUIRED', clarifications.noSpreadsheet());
     }
-    if (this.kind === 'MODIFY') {
-      const direct = await records.prepareFromMessage(message, context);
+    if (this.kind !== 'CREATE') {
+      const direct = this.kind === 'MODIFY' ? await records.prepareFromMessage(message, context) : await records.answerFromMessage(message, context);
       if (direct?.kind === 'reply') {
         return replyOnly(direct.intent, direct.text);
+      }
+      if (direct?.kind === 'answer') {
+        return this.answer(direct, context);
       }
       if (direct?.kind === 'ready') {
         return this.propose([direct.operation], `Updated ${direct.operation.target?.label ?? 'the record'}.`, [direct.note], context);
@@ -64,6 +73,9 @@ export class SheetActionHandler implements IntentHandler {
       const prepared = await records.prepareOperation(operation, context);
       if (prepared.kind === 'reply') {
         return replyOnly(prepared.intent, prepared.text);
+      }
+      if (prepared.kind === 'answer') {
+        return this.answer(prepared, context);
       }
       operations.push(prepared.operation);
       notes.push(prepared.note);
@@ -87,7 +99,68 @@ export class SheetActionHandler implements IntentHandler {
       clock.now(),
     );
     await actions.insert(action);
+    if (this.kind === 'READ') {
+      return this.read(action, context);
+    }
     return { intent: this.intent, reply: this.reply(action, context, notes), changedDraft: null, sheetActionId: action.id };
+  }
+
+  // Reads change nothing, so they run in the same turn instead of waiting for a click. Failures keep the action so the card can retry it.
+  private async read(action: SheetAction, context: ChatTurnContext): Promise<IntentOutcome> {
+    const { runner, announcer, actions } = this.collaborators;
+    const pending = (reply: string): IntentOutcome => ({ intent: this.intent, reply, changedDraft: null, sheetActionId: action.id });
+    try {
+      await runner.requireSheetsAccess(context.userId);
+    } catch (error) {
+      if (error instanceof GoogleOAuthError) {
+        return pending(this.accessNeeded(error, context));
+      }
+      throw error;
+    }
+    const claimed = await runner.claim(action);
+    if (!claimed) {
+      return pending(this.reply(action, context, []));
+    }
+    try {
+      const result = await runner.run(claimed);
+      await actions.update(result.action);
+      return { ...pending(announcer.describeSuccess(result.action, result.spreadsheet, result.summary)), sheetResult: true };
+    } catch (error) {
+      const failure = await runner.fail(claimed, error);
+      if (error instanceof GoogleOAuthError) {
+        return pending(this.accessNeeded(error, context));
+      }
+      return pending(`I couldn't read “${this.title(context)}”. ${failure.reason} Nothing in the spreadsheet was changed, so you can try again.`);
+    }
+  }
+
+  private async answer(answer: RecordAnswer, context: ChatTurnContext): Promise<IntentOutcome> {
+    const { actions, describer, identifiers, clock } = this.collaborators;
+    const operations: SheetOperation[] = [{ type: 'READ_RANGE', sheet: answer.sheet, range: answer.range }];
+    const now = clock.now();
+    const action = SheetAction.prepare(
+      {
+        id: identifiers.generate(),
+        userId: context.userId,
+        conversationId: context.conversation.id,
+        spreadsheetId: context.spreadsheet?.id ?? null,
+        kind: 'READ',
+        summary: answer.text,
+        operations,
+        steps: describer.describeAll(operations, context.spreadsheet?.tabs ?? []),
+      },
+      now,
+    ).succeed({ table: answer.table }, now);
+    await actions.insert(action);
+    return { intent: 'READ_SHEET', reply: answer.text, changedDraft: null, sheetActionId: action.id, sheetResult: true };
+  }
+
+  private accessNeeded(error: GoogleOAuthError, context: ChatTurnContext): string {
+    return `I couldn't read “${this.title(context)}” yet. ${error.message} Use the button below once your Google account is ready.`;
+  }
+
+  private title(context: ChatTurnContext): string {
+    return context.spreadsheet?.title ?? 'your Google Sheet';
   }
 
   private reply(action: SheetAction, context: ChatTurnContext, notes: readonly string[]): string {
@@ -101,7 +174,7 @@ export class SheetActionHandler implements IntentHandler {
           ? `${notes.join(' ')} Click ${button} to update the Google Sheet.${warning}`
           : `I prepared these changes to “${context.spreadsheet?.title ?? 'your Google Sheet'}”. Click ${button} to update the Google Sheet.${warning}`;
       case 'READ':
-        return `Click ${button} to fetch the data from “${context.spreadsheet?.title ?? 'your Google Sheet'}”.`;
+        return `This read of “${this.title(context)}” is already running. Click ${button} if it does not finish.`;
     }
   }
 }

@@ -35,4 +35,5 @@ export interface IntentOutcome {
   reply: string;
   changedDraft: ChangedDraft | null;
   sheetActionId?: string | null;
+  sheetResult?: boolean;
 }

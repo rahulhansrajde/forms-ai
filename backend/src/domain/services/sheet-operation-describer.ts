@@ -81,6 +81,9 @@ export class SheetOperationDescriber {
       return 'All tabs';
     }
     const { title, range } = this.split(table.range);
+    if (table.record) {
+      return `${title} · row ${table.record.row}`;
+    }
     if (table.explicitRange) {
       return `${title} · ${range}`;
     }
@@ -96,6 +99,9 @@ export class SheetOperationDescriber {
       return 'every tab with its size and header row';
     }
     const { title, range } = this.split(table.range);
+    if (table.record) {
+      return `row ${table.record.row} from ${quoted(title)}`;
+    }
     if (table.explicitRange) {
       return `${range} from ${quoted(title)}`;
     }

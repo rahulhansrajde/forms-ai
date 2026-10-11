@@ -131,10 +131,9 @@ describe('linking existing Google Sheets', () => {
     await linkExisting(signedIn, conversationId);
 
     const read = await chat(signedIn, conversationId, 'Show me the first 20 rows');
-    expect(read.sheetAction).toMatchObject({ kind: 'READ', spreadsheetTitle: 'Hackathon Registrations' });
-    const readResult = await execute(signedIn, read.sheetAction!);
-    expect(readResult.body.action.table.values).toEqual(REGISTRATIONS);
-    expect(readResult.body.message.sheetAction.spreadsheetUrl).toBe(EXISTING_URL);
+    expect(read.sheetAction).toMatchObject({ kind: 'READ', status: 'SUCCEEDED', spreadsheetTitle: 'Hackathon Registrations' });
+    expect(read.sheetAction!.table!.values).toEqual(REGISTRATIONS);
+    expect(read.sheetAction!.spreadsheetUrl).toBe(EXISTING_URL);
 
     const addColumn = await chat(signedIn, conversationId, 'Add a Phone Number column after Email');
     expect(addColumn.sheetAction).toMatchObject({ kind: 'MODIFY', spreadsheetTitle: 'Hackathon Registrations' });
@@ -155,11 +154,10 @@ describe('linking existing Google Sheets', () => {
     await execute(signedIn, clear.sheetAction!, 200, true);
     expect(application.sheets.valuesOf(EXISTING_ID, 'Signups').map((row) => row[3] ?? '')).toEqual(['College', '', '']);
 
-    const summary = await chat(signedIn, conversationId, 'Read the data and summarize it');
-    expect(summary, summary.content).toMatchObject({ intent: 'READ_SHEET' });
-    const summarized = await execute(signedIn, summary.sheetAction!);
-    expect(summarized.body.message.content).toContain('Summary: “Hackathon Registrations” has 2 rows below the header row');
-    expect(summarized.body.message.content).toContain('Name: 2 filled');
+    const summary = await sendChat(signedIn, conversationId, 'Read the data and summarize it');
+    expect(summary.userMessage, summary.assistantMessage.content).toMatchObject({ intent: 'READ_SHEET' });
+    expect(summary.assistantMessage.content).toContain('Summary: “Hackathon Registrations” has 2 rows below the header row');
+    expect(summary.assistantMessage.content).toContain('Name: 2 filled');
   });
 
   it('switches back to a sheet from the same chat by name', async () => {

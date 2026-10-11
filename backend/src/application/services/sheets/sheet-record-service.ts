@@ -1,4 +1,4 @@
-import type { ChatIntent, ResolvedRecordChange, UpdateRecordOperation } from '@forms-ai/contracts';
+import { SHEET_LIMITS, type ChatIntent, type ResolvedRecordChange, type SheetTableData, type UpdateRecordOperation } from '@forms-ai/contracts';
 import { SheetRecordContext, type RememberedRecord } from '../../../domain/entities/sheet-record-context.js';
 import type { Spreadsheet } from '../../../domain/entities/spreadsheet.js';
 import type { SheetRecordContextRepository } from '../../../domain/interfaces/repositories.js';
@@ -14,7 +14,10 @@ import type { ChatTurnContext } from '../chat/chat-turn-context.js';
 import type { GoogleCredentialService } from '../google/google-credential-service.js';
 import type { SheetGridReader } from './sheet-grid-reader.js';
 
-export type RecordPreparation = { kind: 'reply'; intent: ChatIntent; text: string } | { kind: 'ready'; operation: UpdateRecordOperation; note: string };
+export type RecordPreparation =
+  | { kind: 'reply'; intent: ChatIntent; text: string }
+  | { kind: 'ready'; operation: UpdateRecordOperation; note: string }
+  | { kind: 'answer'; text: string; sheet: string; range: string; table: SheetTableData | null };
 
 export interface RecordWrite {
   range: string;
@@ -48,7 +51,7 @@ interface SearchResult {
 const MAX_SEARCHED_TABS = 10;
 const NEEDS_ACCESS =
   'To look up records, Forms AI needs your Google account with Google Sheets access. Open Settings → Google, allow Google Sheets, then ask again.';
-const NOUN_STOP_WORDS = new Set(['id', 'name', 'number', 'no', 'code', 'email', 'mail', 'full', 'first', 'last', 'roll', 'e']);
+const NOUN_STOP_WORDS = new Set(['id', 'name', 'number', 'no', 'code', 'email', 'mail', 'full', 'first', 'last', 'roll', 'e', 'register', 'registration', 'reg']);
 
 function quoted(text: string): string {
   return `“${text}”`;
@@ -81,6 +84,20 @@ export class SheetRecordService {
     return request ? this.resolve(context, spreadsheet, request, state, null) : null;
   }
 
+  async answerFromMessage(message: string, context: ChatTurnContext): Promise<RecordPreparation | null> {
+    const spreadsheet = context.spreadsheet;
+    if (!spreadsheet) {
+      return null;
+    }
+    const tabs = spreadsheet.tabs.map((tab) => tab.title);
+    const question = this.collaborators.parser.parseQuestion(message, this.knownHeaders(spreadsheet), tabs);
+    if (!question) {
+      return null;
+    }
+    const request: RecordRequest = { subject: question.subject, changes: [], read: { fields: question.fields, confident: question.confident } };
+    return this.resolve(context, spreadsheet, request, this.stateFor(context, spreadsheet), null);
+  }
+
   async prepareOperation(operation: UpdateRecordOperation, context: ChatTurnContext): Promise<RecordPreparation> {
     const spreadsheet = context.spreadsheet;
     if (!spreadsheet) {
@@ -91,7 +108,7 @@ export class SheetRecordService {
       subject: this.collaborators.parser.subjectFor(operation.match.value, operation.match.column),
       changes: operation.changes.map((change) => ({ column: change.column, value: change.value, ...(change.from ? { from: change.from } : {}) })),
     };
-    return this.resolve(context, spreadsheet, request, this.stateFor(context, spreadsheet), null);
+    return (await this.resolve(context, spreadsheet, request, this.stateFor(context, spreadsheet), null)) ?? clarify('That record could not be found.');
   }
 
   async locateForWrite(accessToken: string, spreadsheetId: string, tabs: readonly SpreadsheetTabSnapshot[], operation: UpdateRecordOperation): Promise<RecordWrite[]> {
@@ -130,7 +147,7 @@ export class SheetRecordService {
     request: RecordRequest,
     state: SheetRecordContext,
     expectedLabel: string | null,
-  ): Promise<RecordPreparation> {
+  ): Promise<RecordPreparation | null> {
     const subject = this.lookupFor(request, state);
     if ('reply' in subject) {
       return subject.reply;
@@ -139,7 +156,11 @@ export class SheetRecordService {
     if ('reply' in opened) {
       return opened.reply;
     }
-    const search = await this.search(opened, spreadsheet, subject.lookup, request.sheet ?? subject.tab, request.changes.map((change) => change.column));
+    const columns = request.read?.fields ?? request.changes.map((change) => change.column);
+    const search = await this.guarded(() => this.search(opened, spreadsheet, subject.lookup, request.sheet ?? subject.tab, columns));
+    if (search && 'reply' in search) {
+      return search.reply;
+    }
     if (!search) {
       return clarify(`${quoted(spreadsheet.title)} has no tabs to search.`);
     }
@@ -151,11 +172,72 @@ export class SheetRecordService {
         await this.awaitIdentifier(state, request, subject.display, grid, location.column);
         return clarify(this.ambiguous(location.rows.length, subject.display, tab, grid, location.column));
       case 'NOT_FOUND':
+        if (request.read && !request.read.confident) {
+          return null;
+        }
         await this.awaitIdentifier(state, request, subject.display, grid, location.column);
         return clarify(this.notFound(subject.lookup, subject.display, tab, grid, location.column));
       case 'FOUND':
-        return this.prepareUpdate(request, state, search, location, subject.display, expectedLabel);
+        return request.read
+          ? this.answer(request.read.fields, state, search, location, subject.display, expectedLabel)
+          : this.prepareUpdate(request, state, search, location, subject.display, expectedLabel);
     }
+  }
+
+  private async answer(
+    fields: readonly string[],
+    state: SheetRecordContext,
+    search: SearchResult,
+    location: Extract<RecordLocation, { kind: 'FOUND' }>,
+    display: string,
+    expectedLabel: string | null,
+  ): Promise<RecordPreparation> {
+    const { locator, headers, contexts, clock, notation } = this.collaborators;
+    const { tab, grid } = search;
+    const label = locator.label(grid, location.record, display);
+    if (expectedLabel && !this.sameEntity(grid, location.record, expectedLabel)) {
+      return clarify(`In ${quoted(tab)}, ${this.lookupText(location, grid, display)} belongs to ${label}, not ${expectedLabel}. Please check it and try again.`);
+    }
+    const columns: number[] = [];
+    for (const field of fields) {
+      const column = headers.find(grid.headers, field);
+      if (column === null) {
+        return clarify(this.unknownColumn(field, tab, grid.headers));
+      }
+      if (!columns.includes(column)) {
+        columns.push(column);
+      }
+    }
+    await contexts.save(state.remember(this.remember(tab, grid, location, label), clock.now()));
+    const identity = locator.isNameColumn(grid.headers, location.column) ? null : this.identitySentence(location, grid, display, label);
+    const matched = location.exact ? null : `I matched ${quoted(display)} to ${quoted((location.record[location.column ?? 0] ?? '').trim())}.`;
+    const width = this.recordWidth(grid.headers);
+    const range = `A${location.row}:${notation.columnLetters(width - 1)}${location.row}`;
+    if (columns.length > 0) {
+      const values = columns.map((column) => `${grid.headers[column]} is ${(location.record[column] ?? '').trim() || 'empty'}`);
+      return { kind: 'answer', text: this.sentence([identity, matched, `${label}'s ${this.listed(values)}.`]), sheet: tab, range, table: null };
+    }
+    const table: SheetTableData = {
+      range: notation.qualify(tab, range),
+      values: [grid.headers.slice(0, width), Array.from({ length: width }, (_value, index) => location.record[index] ?? '')],
+      totalRows: 2,
+      truncated: false,
+      record: { row: location.row },
+    };
+    return { kind: 'answer', text: this.sentence([identity, matched, `Here is ${label}'s row from ${quoted(tab)}.`]), sheet: tab, range, table };
+  }
+
+  private recordWidth(headers: readonly string[]): number {
+    const last = headers.reduce((found, header, index) => (header.length > 0 ? index : found), 0);
+    return Math.min(last + 1, SHEET_LIMITS.maxReadColumns);
+  }
+
+  private listed(parts: readonly string[]): string {
+    return parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+  }
+
+  private sentence(parts: ReadonlyArray<string | null>): string {
+    return parts.filter((part): part is string => Boolean(part)).join(' ');
   }
 
   private async prepareUpdate(
@@ -272,10 +354,16 @@ export class SheetRecordService {
 
   private async open(userId: string, spreadsheet: Spreadsheet): Promise<OpenSpreadsheet | { reply: RecordPreparation }> {
     const { credentials, gateway } = this.collaborators;
-    try {
+    return this.guarded(async () => {
       const accessToken = await credentials.accessTokenFor(userId);
       const snapshot = await gateway.getSpreadsheet(accessToken, spreadsheet.googleSpreadsheetId);
       return { accessToken, tabs: snapshot.tabs };
+    });
+  }
+
+  private async guarded<T>(work: () => Promise<T>): Promise<T | { reply: RecordPreparation }> {
+    try {
+      return await work();
     } catch (error) {
       if (error instanceof GoogleOAuthError) {
         return { reply: clarify(NEEDS_ACCESS) };

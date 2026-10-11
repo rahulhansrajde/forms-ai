@@ -26,6 +26,9 @@ export class IntentDetectionService {
     if (this.isRecordRequest(message, context)) {
       return this.decided('MODIFY_SHEET');
     }
+    if (this.isRecordQuestion(message, context)) {
+      return this.decided('READ_SHEET');
+    }
     if (context.openSuggestions?.isAwaitingConfirmation() && this.affirmations.isBareAffirmation(message)) {
       return this.acceptAll();
     }
@@ -60,6 +63,15 @@ export class IntentDetectionService {
       hasPending: Boolean(context.sheetRecords?.pending),
       hasDraft: context.draft !== null,
     });
+  }
+
+  private isRecordQuestion(message: string, context: ChatTurnContext): boolean {
+    const spreadsheet = context.spreadsheet;
+    if (!spreadsheet) {
+      return false;
+    }
+    const headers = [...new Set(spreadsheet.tabs.flatMap((tab) => tab.headers))];
+    return this.records.parseQuestion(message, headers, spreadsheet.tabs.map((tab) => tab.title)) !== null;
   }
 
   private decided(intent: IntentDecision['intent']): IntentDecision {
