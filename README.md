@@ -48,6 +48,7 @@ Forms AI is a chat workspace that turns a plain-English request into a Google Fo
 9. [Testing](#testing)
 10. [Deployment](#deployment)
 11. [Troubleshooting](#troubleshooting)
+12. [License](#license)
 
 ---
 
@@ -394,3 +395,9 @@ Put it behind HTTPS (secure cookies require it) and point a health check at `/he
 | "Google Forms connection is not configured on this server." | Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and restart |
 | Replies feel template-like | No `BEDROCK_API_KEY`, so the rule-based engine is active — that's expected |
 | Blank page in production | `FRONTEND_DIST_DIRECTORY` doesn't point at a folder containing `index.html` |
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).
